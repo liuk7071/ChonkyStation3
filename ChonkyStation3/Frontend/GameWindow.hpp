@@ -5,7 +5,7 @@
 #include <string>
 #include <format>
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <PlayStation3.hpp>
 
 
@@ -18,7 +18,7 @@ public:
     PlayStation3* ps3;
     std::string title_game;
     SDL_Window* window;
-    SDL_GameController* controller;
+    SDL_Gamepad* controller;
 
     bool quit = false;
     bool fullscreen = false;

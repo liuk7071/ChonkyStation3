@@ -3,18 +3,18 @@
 
 static constexpr double MS_PER_FRAME = 1000.0 / 60.0;
 
-SDL_GameController* findController() {
-    for (int i = 0; i < SDL_NumJoysticks(); i++) {
-        if (SDL_IsGameController(i)) {
-            return SDL_GameControllerOpen(i);
-        }
+SDL_Gamepad* findController() {
+    int count = 0;
+    SDL_JoystickID* gamepads = SDL_GetGamepads(&count);
+    for (int i = 0; i < count && gamepads; i++) {
+        return SDL_OpenGamepad(gamepads[i]);
     }
-
+	SDL_free(gamepads);
     return nullptr;
 }
 
 GameWindow::GameWindow() {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) < 0)
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
         Helpers::panic("Failed to initialize SDL\n");
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -26,7 +26,7 @@ void GameWindow::run(PlayStation3* ps3, bool is_rsx_replay) {
     this->ps3 = ps3;
 
     std::string title = "ChonkyStation3";
-    window = SDL_CreateWindow(title.c_str(), 100, 100, 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow(title.c_str(), 1280, 720, SDL_WINDOW_OPENGL);
     SDL_GLContext context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, context);
     SDL_GL_SetSwapInterval(0);
@@ -58,7 +58,7 @@ void GameWindow::run(PlayStation3* ps3, bool is_rsx_replay) {
     vsync_enabled = false;
 
     frame_count = 0;
-    last_time = SDL_GetTicks64() / 1000.0;
+    last_time = SDL_GetTicks() / 1000.0;
     curr_time = 0;
     ppu_usage = 0;
 
@@ -89,7 +89,7 @@ void GameWindow::run(PlayStation3* ps3, bool is_rsx_replay) {
         while (!quit) flipHandler();
     }
     
-    SDL_GL_DeleteContext(context);
+    SDL_GL_DestroyContext(context);
     SDL_DestroyWindow(window);
     return;
 }
@@ -98,7 +98,7 @@ void GameWindow::run(PlayStation3* ps3, bool is_rsx_replay) {
 void GameWindow::flipHandler() {
     frame_count++;
 
-    const u64 curr_ticks = SDL_GetTicks64();
+    const u64 curr_ticks = SDL_GetTicks();
     curr_time = curr_ticks / 1000.0;
 
     std::string title;
@@ -117,17 +117,18 @@ void GameWindow::flipHandler() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         switch (e.type) {
-        case SDL_QUIT: {
+        case SDL_EVENT_QUIT: {
             quit = true;
             ps3->cycle_count = CPU_FREQ;
             break;
         }
 
-        case SDL_MOUSEBUTTONDOWN: {
+        case SDL_EVENT_MOUSE_BUTTON_DOWN: {
             if (e.button.button == SDL_BUTTON_LEFT && e.button.clicks == 2) {
                 fullscreen = !fullscreen;
                 SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN : 0);
-                SDL_ShowCursor(fullscreen ? SDL_DISABLE : SDL_ENABLE);
+                if (!fullscreen)
+                SDL_ShowCursor();
             }
             else if (e.button.button == SDL_BUTTON_RIGHT) {
                 vsync_enabled = !vsync_enabled;
@@ -136,15 +137,15 @@ void GameWindow::flipHandler() {
             break;
         }
 
-        case SDL_CONTROLLERDEVICEADDED: {
+        case SDL_EVENT_GAMEPAD_ADDED: {
             if (!controller) {
-                controller = SDL_GameControllerOpen(e.cdevice.which);
+                controller = SDL_OpenGamepad(e.cdevice.which);
             }
             break;
         }
-        case SDL_CONTROLLERDEVICEREMOVED: {
-            if (controller && e.cdevice.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller))) {
-                SDL_GameControllerClose(controller);
+        case SDL_EVENT_GAMEPAD_REMOVED: {
+            if (controller && e.cdevice.which == SDL_GetJoystickID(SDL_GetGamepadJoystick(controller))) {
+                SDL_CloseGamepad(controller);
                 controller = findController();
             }
             break;
@@ -153,7 +154,7 @@ void GameWindow::flipHandler() {
     }
 
     if (!controller) {
-        const u8* keystate = SDL_GetKeyboardState(NULL);
+        const bool *keystate = SDL_GetKeyboardState(NULL);
         if (keystate[SDL_SCANCODE_M])      ps3->pressButton(CELL_PAD_CTRL_START);
         if (keystate[SDL_SCANCODE_K])      ps3->pressButton(CELL_PAD_CTRL_CROSS);
         if (keystate[SDL_SCANCODE_L])      ps3->pressButton(CELL_PAD_CTRL_CIRCLE);
@@ -165,25 +166,24 @@ void GameWindow::flipHandler() {
         if (keystate[SDL_SCANCODE_RIGHT])  ps3->pressButton(CELL_PAD_CTRL_RIGHT);
         ps3->setLeftStick(0.5f, 0.5f);
         ps3->setRightStick(0.5f, 0.5f);
-    }
-    else {
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_START))             ps3->pressButton(CELL_PAD_CTRL_START);
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_A))                 ps3->pressButton(CELL_PAD_CTRL_CROSS);
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_B))                 ps3->pressButton(CELL_PAD_CTRL_CIRCLE);
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_X))                 ps3->pressButton(CELL_PAD_CTRL_SQUARE);
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_Y))                 ps3->pressButton(CELL_PAD_CTRL_TRIANGLE);
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_DOWN))         ps3->pressButton(CELL_PAD_CTRL_DOWN);
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_UP))           ps3->pressButton(CELL_PAD_CTRL_UP);
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_LEFT))         ps3->pressButton(CELL_PAD_CTRL_LEFT);
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_RIGHT))        ps3->pressButton(CELL_PAD_CTRL_RIGHT);
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_LEFTSHOULDER))      ps3->pressButton(CELL_PAD_CTRL_L1);
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_RIGHTSHOULDER))     ps3->pressButton(CELL_PAD_CTRL_R1);
-        if (SDL_GameControllerGetAxis(controller, SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERLEFT) > 20000)     ps3->pressButton(CELL_PAD_CTRL_L2);
-        if (SDL_GameControllerGetAxis(controller, SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 20000)    ps3->pressButton(CELL_PAD_CTRL_R2);
-        float leftX   = ((float)SDL_GameControllerGetAxis(controller, SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_LEFTX)  / 32767.0f + 1.0f) / 2.0f;
-        float leftY   = ((float)SDL_GameControllerGetAxis(controller, SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_LEFTY)  / 32767.0f + 1.0f) / 2.0f;
-        float rightX  = ((float)SDL_GameControllerGetAxis(controller, SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_RIGHTX) / 32767.0f + 1.0f) / 2.0f;
-        float rightY  = ((float)SDL_GameControllerGetAxis(controller, SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_RIGHTY) / 32767.0f + 1.0f) / 2.0f;
+    } else {
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_START))              ps3->pressButton(CELL_PAD_CTRL_START);
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_SOUTH))              ps3->pressButton(CELL_PAD_CTRL_CROSS);
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_EAST))               ps3->pressButton(CELL_PAD_CTRL_CIRCLE);
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_WEST))               ps3->pressButton(CELL_PAD_CTRL_SQUARE);
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_NORTH))              ps3->pressButton(CELL_PAD_CTRL_TRIANGLE);
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_DPAD_DOWN))          ps3->pressButton(CELL_PAD_CTRL_DOWN);
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_DPAD_UP))            ps3->pressButton(CELL_PAD_CTRL_UP);
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_DPAD_LEFT))          ps3->pressButton(CELL_PAD_CTRL_LEFT);
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_DPAD_RIGHT))         ps3->pressButton(CELL_PAD_CTRL_RIGHT);
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_LEFT_SHOULDER))      ps3->pressButton(CELL_PAD_CTRL_L1);
+        if (SDL_GetGamepadButton(controller, SDL_GamepadButton::SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER))     ps3->pressButton(CELL_PAD_CTRL_R1);
+        if (SDL_GetGamepadAxis(controller, SDL_GamepadAxis::SDL_GAMEPAD_AXIS_LEFT_TRIGGER) > 20000)     ps3->pressButton(CELL_PAD_CTRL_L2);
+        if (SDL_GetGamepadAxis(controller, SDL_GamepadAxis::SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) > 20000)    ps3->pressButton(CELL_PAD_CTRL_R2);
+        float leftX  = ((float)SDL_GetGamepadAxis(controller, SDL_GamepadAxis::SDL_GAMEPAD_AXIS_LEFTX)  / 32767.0f + 1.0f) / 2.0f;
+        float leftY  = ((float)SDL_GetGamepadAxis(controller, SDL_GamepadAxis::SDL_GAMEPAD_AXIS_LEFTY)  / 32767.0f + 1.0f) / 2.0f;
+        float rightX = ((float)SDL_GetGamepadAxis(controller, SDL_GamepadAxis::SDL_GAMEPAD_AXIS_RIGHTX) / 32767.0f + 1.0f) / 2.0f;
+        float rightY = ((float)SDL_GetGamepadAxis(controller, SDL_GamepadAxis::SDL_GAMEPAD_AXIS_RIGHTY) / 32767.0f + 1.0f) / 2.0f;
         // Deadzone
         leftX = (leftX < 0.4f || leftX > 0.6f) ? leftX : 0.5f;
         leftY = (leftY < 0.4f || leftY > 0.6f) ? leftY : 0.5f;

@@ -2,7 +2,7 @@
 
 #include <common.hpp>
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <toml.hpp>
 
 
