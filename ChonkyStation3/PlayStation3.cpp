@@ -1,9 +1,7 @@
 #include "PlayStation3.hpp"
 
-
-PlayStation3::PlayStation3(const fs::path& executable) : elf_parser(executable), interpreter(mem, this), spu_interpreter(this), rsx(this), syscall(this), module_manager(this), thread_manager(this), spu_thread_manager(this), prx_manager(this), fs(this), lv2_obj(this, &handle_manager) {
-    ppu = &interpreter;
-    spu = &spu_interpreter;
+PlayStation3::PlayStation3(const fs::path& executable) : elf_parser(executable), rsx(this), syscall(this), module_manager(this), thread_manager(this), spu_thread_manager(this), prx_manager(this), fs(this), lv2_obj(this, &handle_manager) {
+    createProcessors();
     
     // Load settings
     settings.load();
@@ -184,7 +182,7 @@ void PlayStation3::printCrashInfo(std::runtime_error err) {
     printf("FATAL: %s\n", err.what());
 
 #ifndef CHONKYSTATION3_USER_BUILD
-    ((PPUInterpreter*)ppu)->printCallStack();
+    ppu->printCallStack();
 
     //for (auto& instr : crash_analyzer.state_queue) {
     //    printf("%s\n", PPUDisassembler::disasm(instr.state, instr.instr, &mem).c_str());
@@ -272,4 +270,9 @@ void PlayStation3::enableSPUOnPC(u32 unused) {
             }
         }
     }
+}
+
+void PlayStation3::createProcessors() {
+    ppu = std::make_unique<PPUInterpreter>(mem, this);
+    spu = std::make_unique<SPUInterpreter>(this);
 }

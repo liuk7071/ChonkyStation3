@@ -37,7 +37,7 @@ public:
         return isShOK<T>(sh) ? (v >> sh) : 0;
     }
 
-    void printCallStack();
+    void printCallStack() override;
     std::unordered_map<u32, std::string> known_funcs;   // Used for debugging
     std::vector<std::pair<u32, u32>> call_stack;    // First: addr of function, second: addr the function is called from
     // Debug symbols

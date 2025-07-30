@@ -3,6 +3,7 @@
 #include <common.hpp>
 
 #include <functional>
+#include <memory>
 #include <unordered_map>
 
 #include <Settings.hpp>
@@ -30,14 +31,14 @@
 
 
 class PlayStation3 {
+    void createProcessors();
+
 public:
     PlayStation3(const fs::path& executable = "");
     ~PlayStation3();
     Memory mem = Memory();
-    PPU* ppu;
-    PPUInterpreter interpreter;
-    SPU* spu;
-    SPUInterpreter spu_interpreter;
+    std::unique_ptr<PPU> ppu;
+    std::unique_ptr<SPU> spu;
     RSX rsx;
     ModuleManager module_manager;
     ThreadManager thread_manager;

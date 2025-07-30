@@ -6,6 +6,7 @@
 #include <Memory.hpp>
 #include <PPUTypes.hpp>
 #include <PPUDisassembler.hpp>
+#include <cstdio>
 
 // Circular dependency
 class PlayStation3;
@@ -16,6 +17,8 @@ public:
     Memory& mem;
     PlayStation3* ps3;
     virtual int step(); // Returns number of cycles executed
+    virtual void printCallStack() { printf("Callstack not available for PPU core\n"); }
+
     void runFunc(u32 addr, u32 toc = 0, bool save_all_state = true);
 
     PPUTypes::State state;
