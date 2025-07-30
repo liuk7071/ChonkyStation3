@@ -8,37 +8,50 @@ void CellAudio::audioThread() {
         if (end_audio_thread) break;
 
         audio_mutex.lock();
-        if (ports[0].status != CELL_AUDIO_STATUS_RUN) {
-            audio_mutex.unlock();
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            continue;
-        }
-
-        // Get current block
-        u64 read_idx = ps3->mem.read<u64>(read_positions_addr + 0 * sizeof(u64));
-
-        // Mix and dump to file (for now)
-        /*std::ofstream sample("sample.bin", std::ios::binary | std::ios::app);
+        
+        int sampled = 0;
+        // TODO: What happens when different ports have a different number of channels?
         const size_t block_size = 256 * ports[0].n_channels * sizeof(float);
-        float* curr_buf = (float*)ps3->mem.getPtr(ports[0].addr + read_idx * block_size);
-        for (int i = 0; i < block_size / sizeof(float); i++) {
-            u32 val = Helpers::bswap<u32>(reinterpret_cast<u32&>(curr_buf[i]));
-            sample.write((const char*)&val, sizeof(float));
-        }*/
+        float* buf = new float[block_size / sizeof(float)];
+        std::memset(buf, 0, block_size);
         
-        // Increment read idx
-        //read_idx++;
-        read_idx %= ports[0].n_blocks;
-        ps3->mem.write<u64>(read_positions_addr + 0 * sizeof(u64), read_idx);
-        
-        // Send aftermix event
-        if (equeue_id) {
-            ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->send({ CellAudio::EVENT_QUEUE_KEY, 0, 0, 0 });
+        for (int i = 0; i < 8; i++) {
+            if (ports[i].status != CELL_AUDIO_STATUS_RUN) {
+                continue;
+            }
+            
+            // Get current block
+            u64 read_idx = ps3->mem.read<u64>(read_positions_addr + i * sizeof(u64));
+            float* curr_buf = (float*)ps3->mem.getPtr(ports[i].addr + read_idx * block_size);
+            
+            for (int i = 0; i < block_size / sizeof(float); i++) {
+                u32 val = Helpers::bswap<u32>(reinterpret_cast<u32&>(curr_buf[i]));
+                buf[i] += reinterpret_cast<float&>(val);
+            }
+            sampled++;
+            
+            // Increment read idx
+            //read_idx++;
+            read_idx %= ports[i].n_blocks;
+            ps3->mem.write<u64>(read_positions_addr + i * sizeof(u64), read_idx);
+            
+            // Send aftermix event
+            if (equeue_id) {
+                ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->send({ CellAudio::EVENT_QUEUE_KEY, 0, 0, 0 });
+            }
         }
+        
+        for (int i = 0; i < block_size / sizeof(float); i++) {
+            buf[i] /= (float)sampled;
+        }
+        
+        // Mix and dump to file (for now)
+        //std::ofstream sample("sample.bin", std::ios::binary | std::ios::app);
+        //sample.write((const char*)buf, block_size);
         
         // Sleep
         audio_mutex.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::microseconds(5300));   // 5.3ms
     }
 }
 
@@ -74,7 +87,7 @@ u64 CellAudio::cellAudioInit() {
 u64 CellAudio::cellAudioSetNotifyEventQueue() {
     const u64 key = ARG0;
     log("cellAudioSetNotifyEventQueue(key: 0x%016llx)\n", key);
-    //Helpers::debugAssert(key == EVENT_QUEUE_KEY, "TODO: cellAudioSetNotifyEventQueue with custom event queue\n");
+    Helpers::debugAssert(key == EVENT_QUEUE_KEY, "TODO: cellAudioSetNotifyEventQueue with custom event queue\n");
     const std::lock_guard<std::mutex> lock(audio_mutex);
     
     return CELL_OK;

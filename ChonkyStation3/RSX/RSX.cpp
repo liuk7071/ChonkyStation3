@@ -15,7 +15,6 @@ void RSX::initGL() {
     OpenGL::setViewport(1280, 720);     // TODO: Get resolution from cellVideoOut
     OpenGL::setClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     OpenGL::clearColor();
-    //OpenGL::setClearDepth(-1.0f);
     OpenGL::clearDepth();
     vao.create();
     vbo.create();

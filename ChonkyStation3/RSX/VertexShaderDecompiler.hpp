@@ -54,19 +54,24 @@ public:
             BitField<0,  1,  u32> end;
             BitField<1,  1,  u32> is_indexed_const;
             BitField<2,  5,  u32> dst;
+            BitField<7,  6,  u32> sca_temp_dst_idx;
             BitField<13, 1,  u32> w;
             BitField<14, 1,  u32> z;
             BitField<15, 1,  u32> y;
             BitField<16, 1,  u32> x;
+            BitField<17, 1,  u32> sca_w;
+            BitField<18, 1,  u32> sca_z;
+            BitField<19, 1,  u32> sca_y;
+            BitField<20, 1,  u32> sca_x;
             BitField<21, 11, u32> src2_lo;
         } w3;
     };
 
     union VertexSource {
         u32 raw;
-        BitField<0, 2,  u32> type;
-        BitField<2, 6,  u32> temp_src_idx; 
-        BitField<8, 2,  u32> w;
+        BitField<0,  2, u32> type;
+        BitField<2,  6, u32> temp_src_idx;
+        BitField<8,  2, u32> w;
         BitField<10, 2, u32> z;
         BitField<12, 2, u32> y;
         BitField<14, 2, u32> x;
@@ -87,8 +92,8 @@ public:
     void markOutputAsUsed(std::string name, int location);
 
     std::string source(SourceIndexPair& src_idx, VertexInstruction* instr);
-    std::string dest(VertexInstruction* instr, bool is_addr_reg = false);
-    std::string mask(VertexInstruction* instr, int& num_lanes);
+    std::string dest(VertexInstruction* instr, bool is_addr_reg = false, bool is_scalar = false);
+    std::string mask(VertexInstruction* instr, int& num_lanes, bool is_scalar = false);
     std::string getType(const int num_lanes);
 
     bool used_inputs[16];

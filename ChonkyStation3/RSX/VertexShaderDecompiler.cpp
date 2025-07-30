@@ -41,14 +41,11 @@ uniform ivec2 surface_clip;
     for (int i = start * 4; i < 512 * 4; i += 4) {
         VertexInstruction* instr = (VertexInstruction*)&shader_data[i];
         log("VEC: %s\n", vertex_vector_opcodes[instr->w1.vector_opc].c_str());
-        if (instr->w1.scalar_opc) printf("SCA: %s\n", vertex_scalar_opcodes[instr->w1.scalar_opc].c_str());
     }
 
     // Start is an instruction index, each instruction is 4 words long, so we multiply by 4
     for (int i = start * 4; i < 512 * 4; i += 4) {
         VertexInstruction* instr = (VertexInstruction*)&shader_data[i];
-
-        if (instr->w1.vector_opc == RSXVertex::VECTOR::NOP) continue;
         
         // Input data sources
         // Instructions can have up to 3 inputs (for example the multiply-add instruction)
@@ -57,13 +54,16 @@ uniform ivec2 surface_clip;
         SourceIndexPair src1 = { 1, { .raw = instr->w2.src1 } };
         SourceIndexPair src2 = { 2, { .raw = (instr->w2.src2_hi << 11) | instr->w3.src2_lo } };
         
+        // Vertex
+        
         int num_lanes;
         const auto mask_str = mask(instr, num_lanes);
         const auto type = getType(num_lanes);
         std::string decompiled_dest = dest(instr, instr->w1.vector_opc == RSXVertex::VECTOR::ARL);
         std::string decompiled_src;
-
+        
         switch (instr->w1.vector_opc) {
+        case RSXVertex::VECTOR::NOP:    break;
         case RSXVertex::VECTOR::MOV: {
             decompiled_src = std::format("{}", source(src0, instr));
             break;
@@ -125,36 +125,83 @@ uniform ivec2 surface_clip;
             Helpers::panic("Unimplemented vertex vector instruction 0x%02x\n", (u8)instr->w1.vector_opc);
         }
 
-        if (instr->w0.saturate)
-            decompiled_src = std::format("clamp({}, 0.0f, 1.0f)", decompiled_src);
-
-        if (instr->w0.cond_enable) {
-            std::string cond_reg = "cc" + std::to_string(instr->w0.cond_reg_sel);
-            const std::string all = "xyzw";
-            std::string swizzle = "    ";
-            swizzle[0] = all[instr->w0.cond_swizzle_x];
-            swizzle[1] = all[instr->w0.cond_swizzle_y];
-            swizzle[2] = all[instr->w0.cond_swizzle_z];
-            swizzle[3] = all[instr->w0.cond_swizzle_w];
-            if (swizzle != all) cond_reg += "." + swizzle;
+        auto decompiled = [instr](std::string decompiled_dest, std::string decompiled_src, std::string mask, std::string type) -> std::string {
+            if (instr->w0.saturate)
+                decompiled_src = std::format("clamp({}, 0.0f, 1.0f)", decompiled_src);
             
-            static const std::string cond_func[] = {
-                "invalidCond",
-                "lessThan",
-                "equal",
-                "lessThanEqual",
-                "greaterThan",
-                "notEqual",
-                "greaterThanEqual"
-            };
-            
-            std::string cond = std::format("{}({}, vec4(0.0f))", cond_func[instr->w0.cond], cond_reg);
-            decompiled_src = std::format("mix({}{}, {}{}, {}({}))", decompiled_dest, mask_str, decompiled_src, mask_str, type, cond);
-            
-            main += std::format("{}{} = {};\n", decompiled_dest, mask_str, decompiled_src);
-        } else
-            main += std::format("{}{} = {}{};\n", decompiled_dest, mask_str, decompiled_src, mask_str);
-
+            if (instr->w0.cond_enable) {
+                std::string cond_reg = "cc" + std::to_string(instr->w0.cond_reg_sel);
+                const std::string all = "xyzw";
+                std::string swizzle = "    ";
+                swizzle[0] = all[instr->w0.cond_swizzle_x];
+                swizzle[1] = all[instr->w0.cond_swizzle_y];
+                swizzle[2] = all[instr->w0.cond_swizzle_z];
+                swizzle[3] = all[instr->w0.cond_swizzle_w];
+                if (swizzle != all) cond_reg += "." + swizzle;
+                
+                static const std::string cond_func[] = {
+                    "invalidCond",
+                    "lessThan",
+                    "equal",
+                    "lessThanEqual",
+                    "greaterThan",
+                    "notEqual",
+                    "greaterThanEqual"
+                };
+                
+                std::string cond = std::format("{}({}, vec4(0.0f))", cond_func[instr->w0.cond], cond_reg);
+                decompiled_src = std::format("mix({}{}, {}{}, {}({}))", decompiled_dest, mask, decompiled_src, mask, type, cond);
+                
+                return std::format("{}{} = {};\n", decompiled_dest, mask, decompiled_src);
+            } else
+                return std::format("{}{} = {}{};\n", decompiled_dest, mask, decompiled_src, mask);
+        };
+        
+        if (instr->w1.vector_opc != RSXVertex::VECTOR::NOP)
+            main += decompiled(decompiled_dest, decompiled_src, mask_str, type);
+        
+        // Scalar
+        
+        int sca_num_lanes;
+        const auto sca_mask_str = mask(instr, num_lanes, true);
+        const auto sca_type = getType(num_lanes);
+        std::string sca_decompiled_dest = dest(instr, false, true);
+        std::string sca_decompiled_src;
+        
+        switch (instr->w1.scalar_opc) {
+        case RSXVertex::SCALAR::NOP:    break;
+        case RSXVertex::SCALAR::RCP: {
+            sca_decompiled_src = std::format("(1.0f / {})", source(src2, instr));
+            break;
+        }
+        case RSXVertex::SCALAR::RSQ: {
+            sca_decompiled_src = std::format("(1.0f / sqrt({})).xxxx", source(src2, instr));
+            break;
+        }
+        case RSXVertex::SCALAR::EXP: {
+            sca_decompiled_src = std::format("exp({})", source(src2, instr));
+            break;
+        }
+        case RSXVertex::SCALAR::LOG: {
+            sca_decompiled_src = std::format("log({})", source(src2, instr));
+            break;
+        }
+        case RSXVertex::SCALAR::LG2: {
+            sca_decompiled_src = std::format("log2({})", source(src2, instr));
+            break;
+        }
+        case RSXVertex::SCALAR::EX2: {
+            sca_decompiled_src = std::format("exp2({})", source(src2, instr));
+            break;
+        }
+                
+        default:
+            Helpers::panic("Unimplemented vertex scalar instruction 0x%02x\n", (u8)instr->w1.scalar_opc);
+        }
+                
+        if (instr->w1.scalar_opc != RSXVertex::SCALAR::NOP)
+            main += decompiled(sca_decompiled_dest, sca_decompiled_src, sca_mask_str, sca_type);
+        
         if (instr->w3.end) break;
     }
     main += R"(
@@ -273,19 +320,22 @@ std::string VertexShaderDecompiler::source(SourceIndexPair& src_idx, VertexInstr
     return source;
 }
 
-std::string VertexShaderDecompiler::dest(VertexInstruction* instr, bool is_addr_reg) {
+std::string VertexShaderDecompiler::dest(VertexInstruction* instr, bool is_addr_reg, bool is_scalar) {
     std::string dest = "";
 
-    if (instr->w0.is_output) {
+    const bool is_output = !is_scalar ? instr->w0.is_output : !instr->w0.is_output;
+    const auto temp_dst_idx = !is_scalar ? instr->w0.temp_dst_idx : instr->w3.sca_temp_dst_idx;
+    const int out_idx = instr->w3.dst;
+    
+    if (is_output && out_idx != 0x1f) {
         Helpers::debugAssert(!is_addr_reg, "VertexShaderDecompiler: address register is dest\n");
-        const int idx = instr->w3.dst;
-        dest = output_names[idx];
-        markOutputAsUsed(dest, idx);
+        dest = output_names[out_idx];
+        markOutputAsUsed(dest, out_idx);
     } else if (!is_addr_reg)
         if (instr->w0.temp_dst_idx == 0x3f)
             dest = "cc" + std::to_string(instr->w0.cond_reg_sel);
         else
-            dest = "r[" + std::to_string(instr->w0.temp_dst_idx) + "]";
+            dest = "r[" + std::to_string(temp_dst_idx) + "]";
     else {
         Helpers::debugAssert(instr->w0.temp_dst_idx < 2, "VertexShaderDecompiler: address register idx is > 1\n");
         dest = "addr" + std::to_string(instr->w0.temp_dst_idx);
@@ -294,24 +344,29 @@ std::string VertexShaderDecompiler::dest(VertexInstruction* instr, bool is_addr_
     return dest;
 }
 
-std::string VertexShaderDecompiler::mask(VertexInstruction* instr, int& num_lanes) {
+std::string VertexShaderDecompiler::mask(VertexInstruction* instr, int& num_lanes, bool is_scalar) {
     std::string mask = ".";
     const std::string full = ".xyzw";
     num_lanes = 0;
 
-    if (instr->w3.x) {
+    auto x = !is_scalar ? instr->w3.x : instr->w3.sca_x;
+    auto y = !is_scalar ? instr->w3.y : instr->w3.sca_y;
+    auto z = !is_scalar ? instr->w3.z : instr->w3.sca_z;
+    auto w = !is_scalar ? instr->w3.w : instr->w3.sca_w;
+    
+    if (x) {
         mask += "x";
         num_lanes++;
     }
-    if (instr->w3.y) {
+    if (y) {
         mask += "y";
         num_lanes++;
     }
-    if (instr->w3.z) {
+    if (z) {
         mask += "z";
         num_lanes++;
     }
-    if (instr->w3.w) {
+    if (w) {
         mask += "w";
         num_lanes++;
     }

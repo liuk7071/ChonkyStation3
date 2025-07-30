@@ -407,6 +407,7 @@ void ModuleManager::init() {
         { 0x39567781, { "sceNpTrophyInit",                                  std::bind(&ModuleManager::stub, this) } },
         { 0x49d18217, { "sceNpTrophyGetGameInfo",                           std::bind(&SceNpTrophy::sceNpTrophyGetGameInfo, &sceNpTrophy) } },
         { 0x623cd2dc, { "sceNpTrophyDestroyHandle",                         std::bind(&ModuleManager::stub, this) } },
+        { 0x8ceedd21, { "sceNpTrophyUnlockTrophy",                          std::bind(&ModuleManager::stub, this) } },
         { 0xb3ac3478, { "sceNpTrophyGetTrophyUnlockState",                  std::bind(&SceNpTrophy::sceNpTrophyGetTrophyUnlockState, &sceNpTrophy) } },
         { 0xe3bf9a28, { "sceNpTrophyCreateContext",                         std::bind(&SceNpTrophy::sceNpTrophyCreateContext, &sceNpTrophy) } },
 
