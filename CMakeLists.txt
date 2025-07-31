@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.10)
 
 project("ChonkyStation3")
 
@@ -11,6 +11,7 @@ endif()
 
 # Optimizations
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+set_target_properties(ChonkyStation3 PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
 
 add_compile_definitions(SDL_MAIN_HANDLED)
 

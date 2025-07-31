@@ -402,7 +402,7 @@ int PPUInterpreter::step() {
         }
         
         state.pc += 4;
-        if (cycles++ > 4096) should_break = true;
+        if (cycles++ > 2048) should_break = true;
     }
     
     return cycles;
