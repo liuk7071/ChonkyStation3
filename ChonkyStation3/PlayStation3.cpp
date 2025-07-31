@@ -2,6 +2,7 @@
 
 PlayStation3::PlayStation3(const fs::path& executable) : elf_parser(executable), rsx(this), syscall(this), module_manager(this), thread_manager(this), spu_thread_manager(this), prx_manager(this), fs(this), lv2_obj(this, &handle_manager) {
     createProcessors();
+    createAudioDevice();
     
     // Load settings
     settings.load();
@@ -275,4 +276,9 @@ void PlayStation3::enableSPUOnPC(u32 unused) {
 void PlayStation3::createProcessors() {
     ppu = std::make_unique<PPUInterpreter>(mem, this);
     spu = std::make_unique<SPUInterpreter>(this);
+}
+
+void PlayStation3::createAudioDevice() {
+    //audio = std::make_unique<NullDevice>();
+    audio = std::make_unique<MiniaudioDevice>();
 }

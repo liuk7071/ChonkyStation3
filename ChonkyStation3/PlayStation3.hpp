@@ -28,11 +28,12 @@
 #include <Filesystem.hpp>
 #include <CrashAnalyzer.hpp>
 #include <Capture/RSXCaptureReplayer.hpp>
+#include <AudioDevice.hpp>
+#include <Null/NullDevice.hpp>
+#include <miniaudio/MiniaudioDevice.hpp>
 
 
 class PlayStation3 {
-    void createProcessors();
-
 public:
     PlayStation3(const fs::path& executable = "");
     ~PlayStation3();
@@ -40,6 +41,7 @@ public:
     std::unique_ptr<PPU> ppu;
     std::unique_ptr<SPU> spu;
     RSX rsx;
+    std::unique_ptr<AudioDevice> audio;
     ModuleManager module_manager;
     ThreadManager thread_manager;
     SPUThreadManager spu_thread_manager;
@@ -88,4 +90,8 @@ public:
     void enableSPUOnPC(u32 unused);
     u32 enable_spu_on_pc = 0;
     std::string spu_thread_to_enable = "";
+    
+private:
+    void createProcessors();
+    void createAudioDevice();
 };

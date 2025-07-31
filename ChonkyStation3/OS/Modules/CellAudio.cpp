@@ -3,51 +3,58 @@
 #include <Lv2Objects/Lv2EventQueue.hpp>
 
 
-static const auto sleep_time = Scheduler::uSecondsToCycles(5300);
+void CellAudio::audioThread() {
+    while (true) {
+        if (end_audio_thread) break;
 
-void CellAudio::advanceAudio() {
-    int sampled = 0;
-    // TODO: What happens when different ports have a different number of channels?
-    const size_t block_size = 256 * ports[0].n_channels * sizeof(float);
-    float* buf = new float[block_size / sizeof(float)];
-    std::memset(buf, 0, block_size);
-    
-    for (int i = 0; i < 8; i++) {
-        if (ports[i].status != CELL_AUDIO_STATUS_RUN) {
-            continue;
-        }
+        audio_mutex.lock();
         
-        // Get current block
-        u64 read_idx = ps3->mem.read<u64>(read_positions_addr + i * sizeof(u64));
-        float* curr_buf = (float*)ps3->mem.getPtr(ports[i].addr + read_idx * block_size);
+        int sampled = 0;
+        // TODO: What happens when different ports have a different number of channels?
+        const size_t block_size = 256 * ports[0].n_channels * sizeof(float);
+        float* buf = new float[block_size / sizeof(float)];
+        std::memset(buf, 0, block_size);
+        
+        for (int i = 0; i < 8; i++) {
+            if (ports[i].status != CELL_AUDIO_STATUS_RUN) {
+                continue;
+            }
+            
+            // Get current block
+            u64 read_idx = ps3->mem.read<u64>(read_positions_addr + i * sizeof(u64));
+            float* curr_buf = (float*)ps3->mem.getPtr(ports[i].addr + read_idx * block_size);
+            
+            for (int i = 0; i < block_size / sizeof(float); i++) {
+                u32 val = Helpers::bswap<u32>(reinterpret_cast<u32&>(curr_buf[i]));
+                buf[i] += reinterpret_cast<float&>(val);
+            }
+            sampled++;
+            
+            // Increment read idx
+            read_idx++;
+            read_idx %= ports[i].n_blocks;
+            ps3->mem.write<u64>(read_positions_addr + i * sizeof(u64), read_idx);
+            
+            // Send aftermix event
+            if (equeue_id) {
+                ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->send({ CellAudio::EVENT_QUEUE_KEY, 0, 0, 0 });
+            }
+        }
         
         for (int i = 0; i < block_size / sizeof(float); i++) {
-            u32 val = Helpers::bswap<u32>(reinterpret_cast<u32&>(curr_buf[i]));
-            buf[i] += reinterpret_cast<float&>(val);
+            buf[i] /= (float)sampled;
         }
-        sampled++;
-
-        // Increment read idx
-        read_idx++;
-        read_idx %= ports[i].n_blocks;
-        ps3->mem.write<u64>(read_positions_addr + i * sizeof(u64), read_idx);
         
-        // Send aftermix event
-        if (equeue_id) {
-            ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->send({ CellAudio::EVENT_QUEUE_KEY, 0, 0, 0 });
-        }
+        // Mix and dump to file (for now)
+        //std::ofstream sample("sample.bin", std::ios::binary | std::ios::app);
+        //sample.write((const char*)buf, block_size);
+        
+        ps3->audio->pushAudio(buf, block_size / sizeof(float));
+        
+        // Sleep
+        audio_mutex.unlock();
+        std::this_thread::sleep_for(std::chrono::microseconds(5300));   // 5.3ms
     }
-    
-    for (int i = 0; i < block_size / sizeof(float); i++) {
-        buf[i] /= (float)sampled;
-    }
-    
-    // Mix and dump to file (for now)
-    std::ofstream sample("sample.bin", std::ios::binary | std::ios::app);
-    sample.write((const char*)buf, block_size);
-    
-    ps3->scheduler.push(std::bind(&CellAudio::advanceAudio, this), sleep_time, "audio step");
-    delete[] buf;
 }
 
 void CellAudio::endAudioThread() {
@@ -74,7 +81,9 @@ u64 CellAudio::cellAudioInit() {
     log("cellAudioInit()\n");
     
     read_positions_addr = ps3->mem.alloc(8 * sizeof(u64), 0, true)->vaddr;
-    ps3->scheduler.push(std::bind(&CellAudio::advanceAudio, this), sleep_time, "audio step");
+    audio_thread = std::thread(&CellAudio::audioThread, this);
+    
+    ps3->audio->init();
     
     return CELL_OK;
 }
@@ -152,5 +161,8 @@ u64 CellAudio::cellAudioPortOpen() {
     ps3->mem.write<u32>(port_ptr, port->id);
     log("Opened port %d (channels: %d, blocks: %d)\n", port->id, port->n_channels, port->n_blocks);
 
+    // TODO: Do this properly later
+    ps3->audio->setChannels(port->n_channels);
+    
     return CELL_OK;
 }

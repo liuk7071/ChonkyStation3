@@ -67,7 +67,7 @@ public:
     
     std::mutex audio_mutex;
     std::thread audio_thread;
-    void advanceAudio();
+    void audioThread();
     void endAudioThread();
 
     u64 cellAudioCreateNotifyEventQueue();
