@@ -25,6 +25,7 @@ This is a hobby project I'm developing for fun and to learn.<br>
 
 <div align="center">
     <h1>Showcase</h1>
+    <img src="Resources/gtasa.png">
     <img src="Resources/TLOU.gif">
     <img src="Resources/arkedo_series_pixel_menu.png">
 </div>
