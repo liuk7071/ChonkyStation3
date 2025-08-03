@@ -323,7 +323,7 @@ std::string VertexShaderDecompiler::source(SourceIndexPair& src_idx, VertexInstr
 std::string VertexShaderDecompiler::dest(VertexInstruction* instr, bool is_addr_reg, bool is_scalar) {
     std::string dest = "";
 
-    const bool is_output = !is_scalar ? instr->w0.is_output : !instr->w0.is_output;
+    const bool is_output = !is_scalar ? instr->w0.is_output.Value() : !instr->w0.is_output;
     const auto temp_dst_idx = !is_scalar ? instr->w0.temp_dst_idx : instr->w3.sca_temp_dst_idx;
     const int out_idx = instr->w3.dst;
     
