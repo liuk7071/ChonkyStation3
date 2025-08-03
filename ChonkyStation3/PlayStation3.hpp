@@ -91,7 +91,6 @@ public:
     u32 enable_spu_on_pc = 0;
     std::string spu_thread_to_enable = "";
     
-private:
     void createProcessors();
     void createAudioDevice();
 };

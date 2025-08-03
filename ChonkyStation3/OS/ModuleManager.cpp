@@ -299,7 +299,7 @@ void ModuleManager::init() {
         { 0xdab029aa, { "cellAudioAddData",                                 std::bind(&ModuleManager::stub, this) } },
         { 0xff3626fd, { "cellAudioRemoveNotifyEventQueue",                  std::bind(&ModuleManager::stub, this) } },
         
-        { 0x4129fe2d, { "cellAudioPortClose",                               std::bind(&ModuleManager::stub, this) } },
+        { 0x4129fe2d, { "cellAudioPortClose",                               std::bind(&CellAudio::cellAudioPortClose, &cellAudio) }},
         { 0x5b1e2c73, { "cellAudioPortStop",                                std::bind(&ModuleManager::stub, this) } },
         { 0x89be28f2, { "cellAudioPortStart",                               std::bind(&CellAudio::cellAudioPortStart, &cellAudio) }},
         { 0xcd7bc431, { "cellAudioPortOpen",                                std::bind(&CellAudio::cellAudioPortOpen, &cellAudio) }},
@@ -319,6 +319,7 @@ void ModuleManager::init() {
         { 0x1cf98800, { "cellPadInit",                                      std::bind(&CellPad::cellPadInit, &cellPad) }},
         { 0x3aaad464, { "cellPadGetInfo",                                   std::bind(&CellPad::cellPadGetInfo, &cellPad)}},
         { 0x578e3c98, { "cellPadSetPortSetting",                            std::bind(&ModuleManager::stub, this) }},
+        { 0x78200559, { "cellPadInfoSensorMode",                            std::bind(&ModuleManager::stub, this) }},
         { 0x8b72cda1, { "cellPadGetData",                                   std::bind(&CellPad::cellPadGetData, &cellPad)}},
         { 0xa703a51d, { "cellPadGetInfo2",                                  std::bind(&CellPad::cellPadGetInfo2, &cellPad)}},
         { 0xbe5be3ba, { "cellPadSetSensorMode",                             std::bind(&ModuleManager::stub, this) } },

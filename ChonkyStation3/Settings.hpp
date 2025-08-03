@@ -66,11 +66,16 @@ public:
         std::string dev_flash_mountpoint    = "./Filesystem/dev_flash";
         std::string dev_usb000_mountpoint   = "./Filesystem/dev_usb000";
     } filesystem;
+    
+    struct {
+        std::string backend = "Null";
+    } audio;
 
     struct {
         bool pause_on_start = false;
         bool disable_spu = false;
         std::string enable_spu_after_pc = "";
         std::string spu_thread_to_enable = "";
+        bool dont_step_cellaudio_port_read_idx = true;
     } debug;
 };

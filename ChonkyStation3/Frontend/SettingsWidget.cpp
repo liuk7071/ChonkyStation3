@@ -23,12 +23,16 @@ SettingsWidget::SettingsWidget(PlayStation3* ps3, QWidget* parent) : QWidget(par
     ui.cellJpgDec->setChecked(ps3->settings.lle.cellJpgDec);
     ui.cellSpurs->setChecked(ps3->settings.lle.cellSpurs);
     ui.cellSpursJq->setChecked(ps3->settings.lle.cellSpursJq);
+    
+    // Audio
+    ui.audioBackend->setCurrentIndex(ui.audioBackend->findData(ps3->settings.audio.backend.c_str(), Qt::DisplayRole));
 
     // Debug
     ui.pauseOnStart->setChecked(ps3->settings.debug.pause_on_start);
     ui.disableSPU->setChecked(ps3->settings.debug.disable_spu);
     ui.enableSPUAfterPC->setText(QString::fromStdString(ps3->settings.debug.enable_spu_after_pc));
     ui.spuThreadToEnable->setText(QString::fromStdString(ps3->settings.debug.spu_thread_to_enable));
+    ui.dontStepCellAudioPortReadIndex->setChecked(ps3->settings.debug.dont_step_cellaudio_port_read_idx);
 
     // Setup events
     connect(ui.apply, &QPushButton::clicked, this, [this, ps3]() {
@@ -46,13 +50,19 @@ SettingsWidget::SettingsWidget(PlayStation3* ps3, QWidget* parent) : QWidget(par
         ps3->settings.lle.cellJpgDec    = ui.cellJpgDec->isChecked();
         ps3->settings.lle.cellSpurs     = ui.cellSpurs->isChecked();
         ps3->settings.lle.cellSpursJq   = ui.cellSpursJq->isChecked();
+        
+        ps3->settings.audio.backend = ui.audioBackend->currentText().toStdString();
 
-        ps3->settings.debug.pause_on_start         = ui.pauseOnStart->isChecked();
-        ps3->settings.debug.disable_spu            = ui.disableSPU->isChecked();
-        ps3->settings.debug.enable_spu_after_pc    = ui.enableSPUAfterPC->text().toStdString();
-        ps3->settings.debug.spu_thread_to_enable   = ui.spuThreadToEnable->text().toStdString();
+        ps3->settings.debug.pause_on_start                      = ui.pauseOnStart->isChecked();
+        ps3->settings.debug.disable_spu                         = ui.disableSPU->isChecked();
+        ps3->settings.debug.enable_spu_after_pc                 = ui.enableSPUAfterPC->text().toStdString();
+        ps3->settings.debug.spu_thread_to_enable                = ui.spuThreadToEnable->text().toStdString();
+        ps3->settings.debug.dont_step_cellaudio_port_read_idx   = ui.dontStepCellAudioPortReadIndex->isChecked();
 
         ps3->settings.save();
+        
+        // Update the backends
+        ps3->createAudioDevice();
     });
 
     setWindowTitle("Settings");

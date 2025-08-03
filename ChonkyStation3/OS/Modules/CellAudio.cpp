@@ -31,9 +31,11 @@ void CellAudio::audioThread() {
             sampled++;
             
             // Increment read idx
-            read_idx++;
-            read_idx %= ports[i].n_blocks;
-            ps3->mem.write<u64>(read_positions_addr + i * sizeof(u64), read_idx);
+            if (!ps3->settings.debug.dont_step_cellaudio_port_read_idx) {
+                read_idx++;
+                read_idx %= ports[i].n_blocks;
+                ps3->mem.write<u64>(read_positions_addr + i * sizeof(u64), read_idx);
+            }
             
             // Send aftermix event
             if (equeue_id) {
@@ -49,7 +51,9 @@ void CellAudio::audioThread() {
         //std::ofstream sample("sample.bin", std::ios::binary | std::ios::app);
         //sample.write((const char*)buf, block_size);
         
-        ps3->audio->pushAudio(buf, block_size / sizeof(float));
+        // No point in pushing audio at all if we dont step the port...
+        if (!ps3->settings.debug.dont_step_cellaudio_port_read_idx)
+            ps3->audio->pushAudio(buf, block_size / sizeof(float));
         
         // Sleep
         audio_mutex.unlock();
@@ -77,13 +81,19 @@ u64 CellAudio::cellAudioCreateNotifyEventQueue() {
     return CELL_OK;
 }
 
+u64 CellAudio::cellAudioPortClose() {
+    u32 port_num = ARG0;
+    log("cellAudioPortClose(port_num: %d)\n", port_num);
+    
+    ports[port_num].status = CELL_AUDIO_STATUS_CLOSE;
+    return CELL_OK;
+}
+
 u64 CellAudio::cellAudioInit() {
     log("cellAudioInit()\n");
     
     read_positions_addr = ps3->mem.alloc(8 * sizeof(u64), 0, true)->vaddr;
     audio_thread = std::thread(&CellAudio::audioThread, this);
-    
-    ps3->audio->init();
     
     return CELL_OK;
 }

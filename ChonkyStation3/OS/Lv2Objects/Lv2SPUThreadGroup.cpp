@@ -14,10 +14,10 @@ bool Lv2SPUThreadGroup::start() {
             thread->status = SPUThread::ThreadStatus::Running;
             // Delay waking the thread up
             //thread->sleep(50000);
-            if (!thread->name.contains("0")
+            //if (!thread->name.contains("0")
             //    && !thread->name.contains("1")
-                )
-                thread->status = SPUThread::ThreadStatus::Waiting;   // Only allow 1 SPURS thread to run, for debugging
+            //    )
+            //    thread->status = SPUThread::ThreadStatus::Waiting;   // Only allow 1 SPURS thread to run, for debugging
         }
     }
 

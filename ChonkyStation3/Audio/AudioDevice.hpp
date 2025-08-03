@@ -5,7 +5,8 @@
 
 class AudioDevice {
 public:
-    virtual void init() { Helpers::panic("Audio device backend did not define init function\n"); }
-    virtual void setChannels(int n_channels) { Helpers::panic("Audio device backend did not define setChannels function\n"); }
-    virtual void pushAudio(float* ptr, size_t n_samples) { Helpers::panic("Audio device backend did not define pushAudio function\n"); }
+    virtual void init() = 0;
+    virtual void end() = 0;
+    virtual void setChannels(int n_channels) = 0;
+    virtual void pushAudio(float* ptr, size_t n_samples) = 0;
 };

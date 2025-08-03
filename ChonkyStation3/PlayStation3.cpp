@@ -1,11 +1,11 @@
 #include "PlayStation3.hpp"
 
 PlayStation3::PlayStation3(const fs::path& executable) : elf_parser(executable), rsx(this), syscall(this), module_manager(this), thread_manager(this), spu_thread_manager(this), prx_manager(this), fs(this), lv2_obj(this, &handle_manager) {
-    createProcessors();
-    createAudioDevice();
-    
     // Load settings
     settings.load();
+    
+    createProcessors();
+    createAudioDevice();
 
     module_manager.init();
 
@@ -279,6 +279,13 @@ void PlayStation3::createProcessors() {
 }
 
 void PlayStation3::createAudioDevice() {
-    //audio = std::make_unique<NullDevice>();
-    audio = std::make_unique<MiniaudioDevice>();
+    module_manager.cellAudio.audio_mutex.lock();
+    
+    // End previous device
+    if (audio) audio->end();
+    
+    if (settings.audio.backend == "Null")              audio = std::make_unique<NullDevice>();
+    else if (settings.audio.backend == "miniaudio")    audio = std::make_unique<MiniaudioDevice>();
+    audio->init();
+    module_manager.cellAudio.audio_mutex.unlock();
 }

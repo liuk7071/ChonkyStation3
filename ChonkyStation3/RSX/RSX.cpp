@@ -118,7 +118,7 @@ void RSX::compileProgram() {
     if (!cache.getProgram(hash_program, program)) {
         // Program wasn't cached, link it and add it to the cache
         OpenGL::Program new_program;
-        new_program.create({ vertex, fragment });
+        if (!new_program.create({ vertex, fragment })) exit(0);
         program = new_program;
         program.use();
 
