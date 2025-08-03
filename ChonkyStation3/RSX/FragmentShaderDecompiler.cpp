@@ -310,6 +310,7 @@ std::string FragmentShaderDecompiler::source(FragmentInstruction& instr, int s) 
     u32 src_idx;
     bool neg;
     bool abs;
+    bool half;
     // TODO: is there a better way to do this...?
     switch (s) {
     case 0:
@@ -321,6 +322,7 @@ std::string FragmentShaderDecompiler::source(FragmentInstruction& instr, int s) 
         src_idx = instr.src0.src_idx;
         neg = instr.src0.neg == 1;
         abs = instr.src0.abs == 1;
+        half = instr.src0.half == 1;
         break;
     case 1:
         type = instr.src1.type;
@@ -331,6 +333,7 @@ std::string FragmentShaderDecompiler::source(FragmentInstruction& instr, int s) 
         src_idx = instr.src1.src_idx;
         neg = instr.src1.neg == 1;
         abs = instr.src1.abs == 1;
+        half = instr.src1.half == 1;
         break;
     case 2:
         type = instr.src2.type;
@@ -341,13 +344,14 @@ std::string FragmentShaderDecompiler::source(FragmentInstruction& instr, int s) 
         src_idx = instr.src2.src_idx;
         neg = instr.src2.neg == 1;
         abs = instr.src2.abs == 1;
+        half = instr.src2.half == 1;
         break;
     }
     
     switch (type) {
     case FRAGMENT_SOURCE_TYPE::TEMP: {
-        source = "r" + std::to_string(src_idx);
-        markRegAsUsed(source, src_idx);
+        source = (!half ? "r" : "h") + std::to_string(src_idx);
+        markRegAsUsed(source, src_idx + (half ? 48 : 0));
         break;
     }
     case FRAGMENT_SOURCE_TYPE::INPUT: {
@@ -417,8 +421,8 @@ std::string FragmentShaderDecompiler::dest(FragmentInstruction& instr) {
     // TODO: there is a lot more than this
     std::string dest; 
     if (!instr.dst.no_dest) {
-        dest = "r" + std::to_string(instr.dst.dest_idx);
-        markRegAsUsed(dest, instr.dst.dest_idx);
+        dest = (!instr.dst.half ? "r" : "h") + std::to_string(instr.dst.dest_idx);
+        markRegAsUsed(dest, instr.dst.dest_idx + (instr.dst.half ? 48 : 0));
     }
     else {
         if (instr.dst.set_cc) {
