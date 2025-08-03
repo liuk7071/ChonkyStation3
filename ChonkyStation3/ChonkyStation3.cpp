@@ -30,6 +30,7 @@ int main(int argc, char** argv) {
     MainWindow main_window = MainWindow();
     int ret = app.exec();
     main_window.onExit();
+    app.exit();
     return ret;
 #else
 

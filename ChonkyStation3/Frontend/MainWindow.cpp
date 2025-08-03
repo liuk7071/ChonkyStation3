@@ -45,8 +45,13 @@ MainWindow::MainWindow() : QMainWindow() {
         settings->show();
     });
 
-    connect(ui.actionDebug, &QAction::triggered, this, [this]() {
+    connect(ui.actionAudio, &QAction::triggered, this, [this]() {
         settings->ui.tabWidget->setCurrentIndex(6);
+        settings->show();
+    });
+    
+    connect(ui.actionDebug, &QAction::triggered, this, [this]() {
+        settings->ui.tabWidget->setCurrentIndex(7);
         settings->show();
     });
 

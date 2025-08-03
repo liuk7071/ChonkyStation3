@@ -13,3 +13,6 @@
 [submodule "Dependencies/capstone"]
 	path = Dependencies/capstone
 	url = https://github.com/capstone-engine/capstone
+[submodule "Dependencies/miniaudio"]
+	path = Dependencies/miniaudio
+	url = https://github.com/mackron/miniaudio.git

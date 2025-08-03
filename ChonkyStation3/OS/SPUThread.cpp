@@ -27,7 +27,7 @@ void SPUThread::init() {
         log("Created Raw SPU thread %d \"%s\"\n", id, name.c_str());
         auto block = ps3->mem.raw_spu.allocPhys(RAW_SPU_OFFSET);
         const u32 ls_addr = RAW_SPU_MEM_START + RAW_SPU_OFFSET * raw_idx;
-        ps3->mem.raw_spu.mmap(ls_addr, block->start, RAW_SPU_OFFSET);
+        ps3->mem.raw_spu.mmap(ls_addr, block->start, RAW_SPU_OFFSET, false);
         log("Mapped LS at 0x%08x\n", ls_addr);
         ls = ps3->mem.getPtr(ls_addr);
         

@@ -94,6 +94,7 @@
     <addaction name="actionPPU"/>
     <addaction name="actionSPU"/>
     <addaction name="actionRSX"/>
+    <addaction name="actionAudio"/>
     <addaction name="separator"/>
     <addaction name="actionDebug"/>
    </widget>
@@ -169,6 +170,11 @@
   <action name="actionPPU_Debugger">
    <property name="text">
     <string>PPU Debugger</string>
+   </property>
+  </action>
+  <action name="actionAudio">
+   <property name="text">
+    <string>Audio</string>
    </property>
   </action>
  </widget>

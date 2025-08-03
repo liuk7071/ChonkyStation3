@@ -164,8 +164,8 @@
         <rect>
          <x>10</x>
          <y>10</y>
-         <width>172</width>
-         <height>65</height>
+         <width>189</width>
+         <height>62</height>
         </rect>
        </property>
        <property name="title">
@@ -299,8 +299,8 @@
         <rect>
          <x>10</x>
          <y>10</y>
-         <width>161</width>
-         <height>73</height>
+         <width>202</width>
+         <height>75</height>
         </rect>
        </property>
        <property name="title">
@@ -353,8 +353,8 @@
         <rect>
          <x>10</x>
          <y>10</y>
-         <width>161</width>
-         <height>73</height>
+         <width>202</width>
+         <height>75</height>
         </rect>
        </property>
        <property name="title">
@@ -407,8 +407,8 @@
         <rect>
          <x>10</x>
          <y>10</y>
-         <width>161</width>
-         <height>73</height>
+         <width>187</width>
+         <height>75</height>
         </rect>
        </property>
        <property name="title">
@@ -452,6 +452,65 @@
        </layout>
       </widget>
      </widget>
+     <widget class="QWidget" name="audio">
+      <attribute name="title">
+       <string>Audio</string>
+      </attribute>
+      <widget class="QGroupBox" name="generalGroup_5">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>202</width>
+         <height>75</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>General</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+       <property name="flat">
+        <bool>false</bool>
+       </property>
+       <property name="checkable">
+        <bool>false</bool>
+       </property>
+       <layout class="QFormLayout" name="formLayout_9">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_12">
+          <property name="text">
+           <string>Backend</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QComboBox" name="audioBackend">
+          <property name="editable">
+           <bool>false</bool>
+          </property>
+          <property name="currentText">
+           <string>Null</string>
+          </property>
+          <property name="currentIndex">
+           <number>0</number>
+          </property>
+          <item>
+           <property name="text">
+            <string>Null</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>miniaudio</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
      <widget class="QWidget" name="debug">
       <attribute name="title">
        <string>Debug</string>
@@ -460,7 +519,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>80</y>
+         <y>150</y>
          <width>367</width>
          <height>124</height>
         </rect>
@@ -548,6 +607,43 @@
           </property>
           <property name="text">
            <string>Automatically pause games after launching</string>
+          </property>
+          <property name="tristate">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QGroupBox" name="audioDebugGroup">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>80</y>
+         <width>312</width>
+         <height>62</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>Audio</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+       <property name="flat">
+        <bool>false</bool>
+       </property>
+       <property name="checkable">
+        <bool>false</bool>
+       </property>
+       <layout class="QFormLayout" name="formLayout_8">
+        <item row="0" column="0">
+         <widget class="QCheckBox" name="dontStepCellAudioPortReadIndex">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enable partial LLE emulation of some liblv2 functions, instead of fully HLEing it.&lt;/p&gt;&lt;p&gt;Recommended.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Don't step cellAudio port read index</string>
           </property>
           <property name="tristate">
            <bool>false</bool>

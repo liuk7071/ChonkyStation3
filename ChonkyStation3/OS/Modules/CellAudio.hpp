@@ -71,6 +71,7 @@ public:
     void endAudioThread();
 
     u64 cellAudioCreateNotifyEventQueue();
+    u64 cellAudioPortClose();
     u64 cellAudioInit();
     u64 cellAudioSetNotifyEventQueue();
     u64 cellAudioGetPortConfig();
