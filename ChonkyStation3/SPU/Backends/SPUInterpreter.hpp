@@ -22,7 +22,8 @@ static constexpr u32 INSTR_MASK = INSTR_TABLE_SIZE - 1;
 class SPUInterpreter : public SPU {
 public:
     SPUInterpreter(PlayStation3* ps3);
-    void step() override;
+    int step() override;
+    bool should_break = false;
 
     template<typename T, int l>
     T ext(T v) {

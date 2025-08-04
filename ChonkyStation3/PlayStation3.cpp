@@ -162,11 +162,11 @@ void PlayStation3::run() {
 
 static constexpr int reschedule_every_n_cycles = 512 * 2048;
 void PlayStation3::step() {
-    const int cycles = ppu->step();
-    spu->step();
+    const int ppu_cycles = ppu->step();
+    const int spu_cycles = spu->step();
 
-    scheduler.tick(cycles);
-    curr_block_cycles += cycles;
+    scheduler.tick(ppu_cycles + spu_cycles);
+    curr_block_cycles += ppu_cycles;
     if (curr_block_cycles > reschedule_every_n_cycles) {
         curr_block_cycles = 0;
         thread_manager.reschedule();

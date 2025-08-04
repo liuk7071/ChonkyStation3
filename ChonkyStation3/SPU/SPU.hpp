@@ -14,7 +14,7 @@ class SPU {
 public:
     SPU(PlayStation3* ps3) : ps3(ps3) {}
     PlayStation3* ps3;
-    virtual void step();
+    virtual int step(); // Returns number of cycles executed
 
     bool enabled = false;
     SPUTypes::State state;

@@ -223,35 +223,44 @@ SPUInterpreter::SPUInterpreter(PlayStation3* ps3) : SPU(ps3) {
     registerInstruction(4, 0xf,     &SPUInterpreter::fms);
 }
 
-void SPUInterpreter::step() {
+int SPUInterpreter::step() {
     if (!enabled) return;
     
-    const SPUInstruction instr = { .raw = read<u32>(state.pc) };
-    const auto opc = (instr.raw >> (32 - INSTR_BITS)) & INSTR_MASK;
-    (*this.*instr_table[opc])(instr);
-
-#ifndef CHONKYSTATION3_USER_BUILD
-
-#ifdef SPURS_TRACE
+    int cycles = 0;
+    const int limit = ps3->thread_manager.getCurrentThread()->id == ps3->thread_manager.idle_thread_id ? 4096 : 128;
+    should_break = false;
     
-    if (state.pc == 0xa00) {
-        logSpurs("spursTasksetEntry()\n");
-    }
-    else if (state.pc == 0xa70) {
-        logSpurs("spursTasksetSyscallEntry()\n");
-    }
-    else if (state.pc == 0xe40) {
-        // spursTasksetProcessRequest
-        //logSpurs("spursTasksetProcessRequest(request: %d, task_id_ptr: 0x%08x, is_waiting_ptr: 0x%08x)\n", state.gprs[3].w[3], state.gprs[4].w[3], state.gprs[5].w[3]);
-        //ps3->module_manager.cellSpurs.spursTasksetProcessRequest();
-    }
-
+    while (!should_break) {
+        const SPUInstruction instr = { .raw = read<u32>(state.pc) };
+        const auto opc = (instr.raw >> (32 - INSTR_BITS)) & INSTR_MASK;
+        (*this.*instr_table[opc])(instr);
+        
+#ifndef CHONKYSTATION3_USER_BUILD
+        
+#ifdef SPURS_TRACE
+        
+        if (state.pc == 0xa00) {
+            logSpurs("spursTasksetEntry()\n");
+        }
+        else if (state.pc == 0xa70) {
+            logSpurs("spursTasksetSyscallEntry()\n");
+        }
+        else if (state.pc == 0xe40) {
+            // spursTasksetProcessRequest
+            //logSpurs("spursTasksetProcessRequest(request: %d, task_id_ptr: 0x%08x, is_waiting_ptr: 0x%08x)\n", state.gprs[3].w[3], state.gprs[4].w[3], state.gprs[5].w[3]);
+            //ps3->module_manager.cellSpurs.spursTasksetProcessRequest();
+        }
+        
 #endif
-
-    //printState();
+        
+        //printState();
 #endif
-
-    state.pc += 4;
+        
+        state.pc += 4;
+        if (cycles++ > limit) should_break = true;
+    }
+    
+    return cycles;
 }
 
 void SPUInterpreter::registerInstruction(u32 size, u32 opc, void (SPUInterpreter::*handler)(const SPUInstruction&)) {
@@ -269,6 +278,7 @@ void SPUInterpreter::unimpl(const SPUInstruction& instr) {
 void SPUInterpreter::stop(const SPUInstruction& instr) {
     ps3->spu_thread_manager.getCurrentThread()->stop();
     state.pc -= 4;
+    should_break = true;
 }
 
 void SPUInterpreter::lnop(const SPUInstruction& instr) {}
@@ -284,6 +294,7 @@ void SPUInterpreter::rdch(const SPUInstruction& instr) {
     // If it did stall, decrease pc so that when the thread wakes up it executes this instruction again and reads the actual value.
     if (ps3->spu_thread_manager.getCurrentThread() == nullptr)         state.pc -= 4;
     else if (!ps3->spu_thread_manager.getCurrentThread()->isRunning()) state.pc -= 4;
+    should_break = true;
 }
 
 void SPUInterpreter::rchcnt(const SPUInstruction& instr) {
@@ -421,6 +432,7 @@ void SPUInterpreter::wrch(const SPUInstruction& instr) {
     // Read rdch for explanation
     if (ps3->spu_thread_manager.getCurrentThread() == nullptr)         state.pc -= 4;
     else if (!ps3->spu_thread_manager.getCurrentThread()->isRunning()) state.pc -= 4;
+    should_break = true;
 }
 
 void SPUInterpreter::biz(const SPUInstruction& instr) {

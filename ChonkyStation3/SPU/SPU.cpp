@@ -1,7 +1,7 @@
 #include "SPU.hpp"
 
 
-void SPU::step() {
+int SPU::step() {
     Helpers::panic("Backend did not define step function\n");
 }
 
