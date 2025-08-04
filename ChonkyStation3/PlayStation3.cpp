@@ -193,6 +193,7 @@ void PlayStation3::printCrashInfo(std::runtime_error err) {
     //printf("%s\n", PPUDisassembler::disasm(ppu->state, crash_analyzer.lastInstr(), &mem).c_str());
     //crash_analyzer.analyzeCrash(error);
 #endif
+
     std::exit(0);
 }
 

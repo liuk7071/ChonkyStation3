@@ -7,10 +7,8 @@ using namespace sys_spu;
 
 u64 SysPrxForUser::sysProcessExit() {
     const s32 code = ARG0;
-
-    printf("\n---------------------------\n");
-    printf(  "PROCESS EXITED WITH CODE %d\n", code);
-    exit(0);
+    Helpers::panic("PROCESS EXITED WITH CODE %d\n", code);
+    return CELL_OK;
 }
 
 u64 SysPrxForUser::sysProcessAtExitSpawn() {
