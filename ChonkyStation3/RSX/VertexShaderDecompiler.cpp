@@ -150,7 +150,7 @@ uniform ivec2 surface_clip;
                 };
                 
                 std::string cond = std::format("{}({}, vec4(0.0f))", cond_func[instr->w0.cond], cond_reg);
-                decompiled_src = std::format("mix({}{}, {}{}, {}({}))", decompiled_dest, mask, decompiled_src, mask, type, cond);
+                decompiled_src = std::format("mix({}{}, {}{}, {}{})", decompiled_dest, mask, decompiled_src, mask, cond, mask);
                 
                 return std::format("{}{} = {};\n", decompiled_dest, mask, decompiled_src);
             } else
@@ -217,8 +217,6 @@ offs.y  -= half_clip.y;
 offs.y  /= half_clip.y;
 offs.z -= 0.5f;
 gl_Position = vec4(fs_pos.xyz * scale + offs, fs_pos.w);
-
-gl_Position.z = gl_Position.z * 2.0f - gl_Position.w;
 )";
 
     declareFunction("void main", initialization + "\n" + main, shader);
@@ -332,7 +330,7 @@ std::string VertexShaderDecompiler::dest(VertexInstruction* instr, bool is_addr_
         dest = output_names[out_idx];
         markOutputAsUsed(dest, out_idx);
     } else if (!is_addr_reg)
-        if (instr->w0.temp_dst_idx == 0x3f)
+        if (temp_dst_idx == 0x3f)
             dest = "cc" + std::to_string(instr->w0.cond_reg_sel);
         else
             dest = "r[" + std::to_string(temp_dst_idx) + "]";
