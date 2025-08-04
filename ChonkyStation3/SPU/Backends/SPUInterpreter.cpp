@@ -224,7 +224,7 @@ SPUInterpreter::SPUInterpreter(PlayStation3* ps3) : SPU(ps3) {
 }
 
 int SPUInterpreter::step() {
-    if (!enabled) return;
+    if (!enabled) return 0;
     
     int cycles = 0;
     const int limit = ps3->thread_manager.getCurrentThread()->id == ps3->thread_manager.idle_thread_id ? 4096 : 128;
