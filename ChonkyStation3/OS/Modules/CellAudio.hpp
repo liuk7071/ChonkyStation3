@@ -27,6 +27,7 @@ static constexpr u32 CELL_AUDIO_STATUS_CLOSE = 0x1010;
 static constexpr u32 CELL_AUDIO_STATUS_READY = 1;
 static constexpr u32 CELL_AUDIO_STATUS_RUN   = 2;
 
+static constexpr u32 CELL_AUDIO_ERROR_ALREADY_INIT = 0x80310701;
 
 class CellAudio {
 public:
@@ -61,6 +62,8 @@ public:
     };
 
     static constexpr u64 EVENT_QUEUE_KEY = 0x1234A1BE1234A1BE;
+
+    bool initialized = false;
     u32 equeue_id = 0;
     Port ports[8];
     u32 read_positions_addr;

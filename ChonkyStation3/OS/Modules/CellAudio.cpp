@@ -92,6 +92,12 @@ u64 CellAudio::cellAudioPortClose() {
 u64 CellAudio::cellAudioInit() {
     log("cellAudioInit()\n");
     
+    // TLOU and Sonic the Hedgehog do this
+    if (initialized) {
+        return CELL_AUDIO_ERROR_ALREADY_INIT;
+    }
+    
+    initialized = true;
     read_positions_addr = ps3->mem.alloc(8 * sizeof(u64), 0, true)->vaddr;
     audio_thread = std::thread(&CellAudio::audioThread, this);
     

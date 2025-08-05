@@ -93,4 +93,7 @@ public:
     
     void createProcessors();
     void createAudioDevice();
+    
+private:
+    void terminate();
 };

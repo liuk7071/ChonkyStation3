@@ -23,17 +23,7 @@ PlayStation3::PlayStation3(const fs::path& executable) : elf_parser(executable),
 }
 
 PlayStation3::~PlayStation3() {
-    // Join lockline waiter threads
-    for (auto& thread : spu_thread_manager.threads) {
-        thread.lockline_waiter->end();
-    }
-    
-    // Join audio thread
-    module_manager.cellAudio.endAudioThread();
-
-    // Free memory
-    for (auto& i : mem.regions)
-        free(i->mem);
+    terminate();
 }
 
 void PlayStation3::gameSelector() {
@@ -194,6 +184,7 @@ void PlayStation3::printCrashInfo(std::runtime_error err) {
     //crash_analyzer.analyzeCrash(error);
 #endif
 
+    terminate();
     std::exit(0);
 }
 
@@ -289,4 +280,18 @@ void PlayStation3::createAudioDevice() {
     else if (settings.audio.backend == "miniaudio")    audio = std::make_unique<MiniaudioDevice>();
     audio->init();
     module_manager.cellAudio.audio_mutex.unlock();
+}
+
+void PlayStation3::terminate() {
+    // Join lockline waiter threads
+    for (auto& thread : spu_thread_manager.threads) {
+        thread.lockline_waiter->end();
+    }
+    
+    // Join audio thread
+    module_manager.cellAudio.endAudioThread();
+
+    // Free memory
+    for (auto& i : mem.regions)
+        free(i->mem);
 }
