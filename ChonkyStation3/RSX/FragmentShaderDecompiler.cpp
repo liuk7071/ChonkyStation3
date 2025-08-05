@@ -12,6 +12,8 @@ vec4 no_dest;
 vec4 cc0;
 vec4 cc1;
 
+layout(location = 0) out vec4 out_col0;
+
 uniform sampler2D tex;
 uniform bool flip_tex;
 
@@ -28,6 +30,7 @@ uniform bool flip_tex;
     next_constant = 0;
 
     curr_offs = shader_program.addr;
+    const bool float16_exports = !(shader_program.ctrl & 0x40); // CELL_GCM_SHADER_CONTROL_32_BITS_EXPORTS
 
     log("Decompiling fragment shader\n");
 
@@ -217,6 +220,9 @@ uniform bool flip_tex;
         if (instr.dst.end) break;
     }
 
+    std::string out_reg = !float16_exports ? "r0" : "h0";
+    main += "\nout_col0 = " + out_reg + ";";
+    
     declareFunction("void main", initialization + "\n" + main, shader);
 
     shader_base += inputs + "\n";
@@ -289,8 +295,6 @@ void FragmentShaderDecompiler::markRegAsUsed(std::string name, int location) {
     if (used_regs[location]) return;
     used_regs[location] = true;
     std::string layout = "";
-    if (location == 0)
-        layout = "layout (location = 0) out ";
     regs += layout + "vec4 " + name + ";\n";
     initialization += name + " = vec4(0.0f, 0.0f, 0.0f, 1.0f);\n";
 }
