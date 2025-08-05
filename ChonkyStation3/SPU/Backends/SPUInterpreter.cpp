@@ -331,6 +331,13 @@ void SPUInterpreter::nor(const SPUInstruction& instr) {
     state.gprs[instr.rt0].dw[1] = ~(state.gprs[instr.ra].dw[1] | state.gprs[instr.rb].dw[1]);
 }
 
+void SPUInterpreter::rot(const SPUInstruction& instr) {
+    state.gprs[instr.rt0].w[0] = std::rotl(state.gprs[instr.ra].w[0], state.gprs[instr.rb].w[0] & 0x1f);
+    state.gprs[instr.rt0].w[1] = std::rotl(state.gprs[instr.ra].w[1], state.gprs[instr.rb].w[1] & 0x1f);
+    state.gprs[instr.rt0].w[2] = std::rotl(state.gprs[instr.ra].w[2], state.gprs[instr.rb].w[2] & 0x1f);
+    state.gprs[instr.rt0].w[3] = std::rotl(state.gprs[instr.ra].w[3], state.gprs[instr.rb].w[3] & 0x1f);
+}
+
 void SPUInterpreter::rotm(const SPUInstruction& instr) {
     state.gprs[instr.rt0].w[0] = safeShr<u32>(state.gprs[instr.ra].w[0], (0 - state.gprs[instr.rb].w[0]) & 0x3f);
     state.gprs[instr.rt0].w[1] = safeShr<u32>(state.gprs[instr.ra].w[1], (0 - state.gprs[instr.rb].w[1]) & 0x3f);
@@ -899,6 +906,17 @@ void SPUInterpreter::fscrrd(const SPUInstruction& instr) {
     clr(state.gprs[instr.rt0]);
 }
 
+void SPUInterpreter::fesd(const SPUInstruction& instr) {
+    state.gprs[instr.rt0].d[0] = (double)state.gprs[instr.ra].f[1];
+    state.gprs[instr.rt0].d[1] = (double)state.gprs[instr.ra].f[3];
+}
+
+void SPUInterpreter::frds(const SPUInstruction& instr) {
+    clr(state.gprs[instr.rt0]);
+    state.gprs[instr.rt0].f[1] = (float)state.gprs[instr.ra].d[0];
+    state.gprs[instr.rt0].f[3] = (float)state.gprs[instr.ra].d[1];
+}
+
 void SPUInterpreter::fscrwr(const SPUInstruction& instr) {
     // TODO
     //printf("SPU: TODO FSCRWR\n");
@@ -909,6 +927,13 @@ void SPUInterpreter::fceq(const SPUInstruction& instr) {
     state.gprs[instr.rt0].w[1] = (state.gprs[instr.ra].f[1] == state.gprs[instr.rb].f[1]) ? 0xffffffff : 0;
     state.gprs[instr.rt0].w[2] = (state.gprs[instr.ra].f[2] == state.gprs[instr.rb].f[2]) ? 0xffffffff : 0;
     state.gprs[instr.rt0].w[3] = (state.gprs[instr.ra].f[3] == state.gprs[instr.rb].f[3]) ? 0xffffffff : 0;
+}
+
+void SPUInterpreter::mpy(const SPUInstruction& instr) {
+    state.gprs[instr.rt0].w[0] = (s32)(s16)(state.gprs[instr.ra].w[0] & 0xffff) * (s32)(s16)(state.gprs[instr.rb].w[0] & 0xffff);
+    state.gprs[instr.rt0].w[1] = (s32)(s16)(state.gprs[instr.ra].w[1] & 0xffff) * (s32)(s16)(state.gprs[instr.rb].w[1] & 0xffff);
+    state.gprs[instr.rt0].w[2] = (s32)(s16)(state.gprs[instr.ra].w[2] & 0xffff) * (s32)(s16)(state.gprs[instr.rb].w[2] & 0xffff);
+    state.gprs[instr.rt0].w[3] = (s32)(s16)(state.gprs[instr.ra].w[3] & 0xffff) * (s32)(s16)(state.gprs[instr.rb].w[3] & 0xffff);
 }
 
 void SPUInterpreter::mpyh(const SPUInstruction& instr) {
@@ -1305,7 +1330,7 @@ UNIMPL_INSTR(mfspr);
 //UNIMPL_INSTR(sfh);
 //UNIMPL_INSTR(nor);
 UNIMPL_INSTR(absdb);
-UNIMPL_INSTR(rot);
+//UNIMPL_INSTR(rot);
 //UNIMPL_INSTR(rotm);
 //UNIMPL_INSTR(rotma);
 //UNIMPL_INSTR(shl);
@@ -1415,13 +1440,13 @@ UNIMPL_INSTR(bgx);
 UNIMPL_INSTR(mpyhha);
 UNIMPL_INSTR(mpyhhau);
 //UNIMPL_INSTR(fscrrd);
-UNIMPL_INSTR(fesd);
-UNIMPL_INSTR(frds);
+//UNIMPL_INSTR(fesd);
+//UNIMPL_INSTR(frds);
 //UNIMPL_INSTR(fscrwr);
 UNIMPL_INSTR(dftsv);
 //UNIMPL_INSTR(fceq);
 UNIMPL_INSTR(dfceq);
-UNIMPL_INSTR(mpy);
+//UNIMPL_INSTR(mpy);
 //UNIMPL_INSTR(mpyh);
 //UNIMPL_INSTR(mpyhh);
 UNIMPL_INSTR(mpys);
