@@ -275,6 +275,19 @@ void RSX::uploadTexture() {
        return;
     }
 
+    auto get_bytes_per_pixel = [this](u32 raw_fmt) -> u32 {
+        switch (raw_fmt) {
+        case CELL_GCM_TEXTURE_B8:       return 1;
+        case CELL_GCM_TEXTURE_R5G6B5:   return 2;
+        case CELL_GCM_TEXTURE_G8B8:     return 2;
+        default:                        return 4;
+        }
+    };
+    
+    auto get_pitch = [this, get_bytes_per_pixel](u32 raw_fmt) -> u32 {
+        return tex_pitch / get_bytes_per_pixel(raw_fmt);
+    };
+    
     auto swizzle = [this]() {
         // should_flip_tex == framebuffer texture
         // We don't reverse the swizzling because the framebuffer textures are written in the right order
@@ -317,6 +330,7 @@ void RSX::uploadTexture() {
     // Texture cache
     const u64 hash = cache.computeTextureHash(ps3->mem.getPtr(texture.addr), texture.width, texture.height, 4);    // TODO: don't hardcode
     if (!cache.getTexture(hash, cached_texture)) {
+        const auto raw_fmt = getRawTextureFormat(texture.format);
         const auto fmt = getTexturePixelFormat(texture.format);
         const auto internal = getTextureInternalFormat(texture.format);
         const auto type = getTextureDataType(texture.format);
@@ -328,16 +342,22 @@ void RSX::uploadTexture() {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glActiveTexture(GL_TEXTURE0 + 0);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        
+        if (raw_fmt == CELL_GCM_TEXTURE_R5G6B5) {
+            glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
+        }
+        
         if (!isCompressedFormat(texture.format)) {
-            glPixelStorei(GL_UNPACK_ROW_LENGTH, tex_pitch / ((getRawTextureFormat(texture.format) == CELL_GCM_TEXTURE_B8) ? 1 : 4)); // TODO: Clean this up
-
             u8* tex_ptr = ps3->mem.getPtr(texture.addr);
             u8* unswizzled_tex = nullptr;
             // Handle swizzling
             if ((texture.format & CELL_GCM_TEXTURE_LN) == CELL_GCM_TEXTURE_SZ) {
-                const u32 pixel_size = (getRawTextureFormat(texture.format) == CELL_GCM_TEXTURE_B8) ? 1 : 4;    // TODO: Other formats
+                const u32 pixel_size = get_bytes_per_pixel(raw_fmt);
                 unswizzled_tex = new u8[texture.width * texture.height * pixel_size];
                 swizzleTexture(tex_ptr, unswizzled_tex, texture.width, texture.height, pixel_size);
+            } else {
+                glPixelStorei(GL_UNPACK_ROW_LENGTH, get_pitch(raw_fmt));
             }
 
             glTexImage2D(GL_TEXTURE_2D, 0, internal, texture.width, texture.height, 0, fmt, type, (void*)(!unswizzled_tex ? tex_ptr : unswizzled_tex));
@@ -352,6 +372,8 @@ void RSX::uploadTexture() {
         //lodepng::encode(std::format("./{:08x}.png", texture.addr).c_str(), ps3->mem.getPtr(texture.addr), texture.width, texture.height);
     }
     glActiveTexture(GL_TEXTURE0 + 0);
+    glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
+    
     glBindTexture(GL_TEXTURE_2D, cached_texture.m_handle);
     swizzle();
 
