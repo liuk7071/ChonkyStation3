@@ -36,6 +36,7 @@ void Scheduler::push(std::function<void(void)> func, u64 time, std::string name)
 }
 
 void Scheduler::deleteAllEventsOfName(std::string name) {
+    std::lock_guard<std::recursive_mutex> lock(mutex);
     auto eventList = events.get_container();
 
     for (int i = 0; i < events.size(); i++) {

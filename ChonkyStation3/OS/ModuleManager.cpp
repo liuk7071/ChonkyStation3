@@ -168,6 +168,7 @@ void ModuleManager::init() {
         { 0x220894e3, { "cellSysutilEnableBgmPlayback",                     std::bind(&ModuleManager::stub, this) }},
         { 0x2f280883, { "cellSysutilAvc2EstimateMemoryContainerSize",       std::bind(&ModuleManager::stub, this) }},
         { 0x40e895d3, { "cellSysutilGetSystemParamInt",                     std::bind(&CellSysutil::cellSysutilGetSystemParamInt, &cellSysutil) }},
+        { 0x571dc686, { "cellSysutilGetLicenseArea",                        std::bind(&ModuleManager::stub, this) }},
         { 0x6cfd856f, { "cellSysutilGetBgmPlaybackStatus2",                 std::bind(&ModuleManager::stub, this) }},
         { 0x89456724, { "cellSysutilAvc2InitParam",                         std::bind(&ModuleManager::stub, this) }},
         { 0x938013a0, { "cellSysutilGetSystemParamString",                  std::bind(&CellSysutil::cellSysutilGetSystemParamString, &cellSysutil) }},
@@ -372,6 +373,7 @@ void ModuleManager::init() {
         { 0xf4babd3f, { "sceNpMatching2Init2",                              std::bind(&ModuleManager::stub, this) }},
 
         { 0x41251f74, { "sceNp2Init",                                       std::bind(&ModuleManager::stub, this) }},
+        { 0xaadb7c12, { "sceNp2Term",                                       std::bind(&ModuleManager::stub, this) }},
         
         { 0x8f87a06b, { "sceNpTusInit",                                     std::bind(&ModuleManager::stub, this) }},
         

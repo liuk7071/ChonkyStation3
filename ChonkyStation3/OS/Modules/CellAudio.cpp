@@ -107,7 +107,7 @@ u64 CellAudio::cellAudioInit() {
 u64 CellAudio::cellAudioSetNotifyEventQueue() {
     const u64 key = ARG0;
     log("cellAudioSetNotifyEventQueue(key: 0x%016llx)\n", key);
-    Helpers::debugAssert(key == EVENT_QUEUE_KEY, "TODO: cellAudioSetNotifyEventQueue with custom event queue\n");
+    //Helpers::debugAssert(key == EVENT_QUEUE_KEY, "TODO: cellAudioSetNotifyEventQueue with custom event queue\n");
     const std::lock_guard<std::mutex> lock(audio_mutex);
     
     return CELL_OK;
