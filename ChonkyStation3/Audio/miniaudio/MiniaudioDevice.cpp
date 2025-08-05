@@ -11,7 +11,7 @@ void MiniaudioDevice::init() {
     config.sampleRate = 48000;
     config.pUserData = this;
     config.aaudio.usage = ma_aaudio_usage_game;
-    
+
     // Audio callback
     config.dataCallback = [](ma_device* device, void* out, const void* input, ma_uint32 frame_count) {
         auto dev = (MiniaudioDevice*)device->pUserData;

@@ -33,7 +33,10 @@ u64 Syscall::sys_mutex_lock() {
     }
 
     Lv2Mutex* mutex = ps3->lv2_obj.get<Lv2Mutex>(mutex_id);
-    if (!mutex->lock()) Helpers::panic("sys_mutex_lock: attempted to lock non-recursive mutex twice\n");
+    if (!mutex->lock()) {
+        log_sys_mutex("WARNING: attempt to lock non-recursive mutex twice\n");  // The Guided Fate Paradox does this (and probably many others)
+        return CELL_EDEADLK;
+    }
 
     return CELL_OK;
 }
