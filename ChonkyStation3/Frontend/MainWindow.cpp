@@ -7,6 +7,7 @@ MainWindow::MainWindow() : QMainWindow() {
     settings = new SettingsWidget(ps3);
     thread_debugger = new ThreadDebuggerWidget(ps3);
     ppu_debugger = new PPUDebuggerWidget(ps3, game_window);
+    about_window = new AboutWindow(this);
     
     // Qt6 UI
     ui.setupUi(this);
@@ -64,6 +65,10 @@ MainWindow::MainWindow() : QMainWindow() {
     });
     
     connect(ui.actionReplay_RSX_Capture, &QAction::triggered, this, &MainWindow::replayRSXCapture);
+    
+    connect(ui.actionAbout_ChonkyStation3, &QAction::triggered, this, [this]() {
+        about_window->show();
+    });
     
     // Pause / Resume
     connect(ui.pauseButton, &QPushButton::clicked, this, [this]() {

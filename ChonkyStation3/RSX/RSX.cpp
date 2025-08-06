@@ -610,8 +610,8 @@ void RSX::runCommandList(u64 put_addr) {
         if (cmd & 0xa0030003) {
             if ((cmd & 0xe0000003) == 0x20000000) { // jump
                 const u32 old_get = gcm.ctrl->get - 4;
-                gcm.ctrl->get = cmd & 0x1ffffffc;
-                log("Jump to 0x%08x\n", (u32)gcm.ctrl->get);
+                gcm.ctrl->get = cmd & 0x1fffffff;
+                log("Jump to 0x%08x (cmd: 0x%08x)\n", (u32)gcm.ctrl->get, cmd);
 
                 // Detect hangs
                 if (gcm.ctrl->get == last_jump_dst && old_get == last_jump_addr) {
@@ -627,7 +627,7 @@ void RSX::runCommandList(u64 put_addr) {
 
             if ((cmd & 0xe0000003) == 0x00000001) { // jump
                 const u32 old_get = gcm.ctrl->get - 4;
-                gcm.ctrl->get = cmd & 0xfffffffc;
+                gcm.ctrl->get = cmd & 0x1ffffffc;
                 log("Jump to 0x%08x\n", (u32)gcm.ctrl->get);
                 
                 // Detect hangs

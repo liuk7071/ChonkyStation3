@@ -107,9 +107,16 @@
     <addaction name="separator"/>
     <addaction name="actionReplay_RSX_Capture"/>
    </widget>
+   <widget class="QMenu" name="menuAbout">
+    <property name="title">
+     <string>About</string>
+    </property>
+    <addaction name="actionAbout_ChonkyStation3"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuSettings"/>
    <addaction name="menuDebug"/>
+   <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen_ELF">
@@ -175,6 +182,11 @@
   <action name="actionAudio">
    <property name="text">
     <string>Audio</string>
+   </property>
+  </action>
+  <action name="actionAbout_ChonkyStation3">
+   <property name="text">
+    <string>About ChonkyStation3</string>
    </property>
   </action>
  </widget>

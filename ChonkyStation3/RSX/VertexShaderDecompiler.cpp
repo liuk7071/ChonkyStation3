@@ -3,8 +3,7 @@
 
 std::string VertexShaderDecompiler::decompile(u32* shader_data, u32 start) {
     std::string shader_base =
-R"(
-#version 410 core
+R"(#version 410 core
 
 
 vec4 r[32];

@@ -106,7 +106,7 @@ static Logger manager_prx           = Logger<1>    ("[Manager][PRX           ] "
 
 // Thread
 static Logger thread                = Logger<true> ("[Thread ][PPU           ] ");
-static Logger thread_spu            = Logger<0> ("[Thread ][SPU           ] ");
+static Logger thread_spu            = Logger<0>("[Thread ][SPU           ] ");
 
 // Other
 static Logger memory                = Logger<true> ("[Other  ][Memory        ] ");

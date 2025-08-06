@@ -208,6 +208,7 @@ void Syscall::doSyscall(bool decrement_pc_if_module_call) {
     case 342:   ps3->ppu->state.gprs[3] = sys_memory_container_destroy();                       break;
     case 348:   ps3->ppu->state.gprs[3] = sys_memory_allocate();                                break;
     case 349:   ps3->ppu->state.gprs[3] = sys_memory_free();                                    break;
+    case 350:   ps3->ppu->state.gprs[3] = sys_memory_allocate_from_container();                 break;
     case 351:   ps3->ppu->state.gprs[3] = sys_memory_get_page_attribute();                      break;
     case 352:   ps3->ppu->state.gprs[3] = sys_memory_get_user_memory_size();                    break;
     case 383:   todo("sys_game_get_temperature()");                                             break;

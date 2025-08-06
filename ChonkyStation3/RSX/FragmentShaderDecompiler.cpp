@@ -4,8 +4,7 @@
 
 std::string FragmentShaderDecompiler::decompile(FragmentShader& shader_program) {
     std::string shader_base =
-R"(
-#version 410 core
+R"(#version 410 core
 
 
 vec4 no_dest;

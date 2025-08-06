@@ -39,6 +39,7 @@ public:
     u64 sys_memory_container_destroy();
     u64 sys_memory_allocate();
     u64 sys_memory_free();
+    u64 sys_memory_allocate_from_container();
     u64 sys_memory_get_page_attribute();
     u64 sys_memory_get_user_memory_size();
 

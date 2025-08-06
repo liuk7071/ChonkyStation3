@@ -172,7 +172,7 @@ u64 CellAudio::cellAudioPortOpen() {
 
     // Allocate memory
     port->size = port->n_channels * port->n_blocks * 256 * sizeof(float);
-    port->addr = ps3->mem.alloc(port->size)->vaddr;
+    port->addr = ps3->mem.alloc(port->size, true)->vaddr;
 
     ps3->mem.write<u32>(port_ptr, port->id);
     log("Opened port %d (channels: %d, blocks: %d)\n", port->id, port->n_channels, port->n_blocks);

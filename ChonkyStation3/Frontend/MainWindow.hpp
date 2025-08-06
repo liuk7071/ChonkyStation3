@@ -11,6 +11,7 @@
 #include <PlayStation3.hpp>
 #include <Loaders/Game/GameLoader.hpp>
 
+#include "AboutWindow.hpp"
 #include "SettingsWidget.hpp"
 #include "ThreadDebuggerWidget.hpp"
 #include "PPUDebuggerWidget.hpp"
@@ -25,6 +26,7 @@ public:
     SettingsWidget* settings;
     ThreadDebuggerWidget* thread_debugger;
     PPUDebuggerWidget* ppu_debugger;
+    AboutWindow* about_window;
 
     void setListItem(int row, int column, std::string str);
     void setListIcon(int row, fs::path icon);

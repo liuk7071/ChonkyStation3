@@ -62,6 +62,23 @@ u64 Syscall::sys_memory_free() {
     return CELL_OK;
 }
 
+u64 Syscall::sys_memory_allocate_from_container() {
+    const u64 size = ARG0;
+    const u32 id = ARG1;
+    const u64 flags = ARG2;
+    const u32 alloc_ptr = ARG3;
+    log_sys_memory("sys_memory_allocate_from_container(size: %lld, id: %d, flags: 0x%016llx, alloc_ptr: 0x%08x)\n", size, id, flags, alloc_ptr);
+    
+    // Treat this as normal alloc
+    if (!ps3->mem.canAlloc(size))
+        return CELL_ENOMEM;
+    
+    auto block = ps3->mem.alloc(size, 0x20000000);
+    ps3->mem.write<u32>(alloc_ptr, block->vaddr);
+    
+    return CELL_OK;
+}
+
 u64 Syscall::sys_memory_get_page_attribute() {
     const u32 addr = ARG0;
     const u32 attr_ptr = ARG1;
