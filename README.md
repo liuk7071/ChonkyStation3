@@ -163,6 +163,9 @@ This is a hobby project I'm developing for fun and to learn.<br>
   </p>
 </div>
 
+---
+<br>
+
 <div align="center">
   <h1>Acknowledgements</h1>
 </div>
