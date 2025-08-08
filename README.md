@@ -150,6 +150,20 @@ This is a hobby project I'm developing for fun and to learn.<br>
 <br>
 
 <div align="center">
+  <h1>Support the project</h1>
+</div>
+<div align="left">
+  <p>
+  ChonkyStation3 is and forever will be free and open-source, meaning that no release will ever be hidden behind a paywall.
+  That said, by donating you can help to keep the project running. Your donations motivate me to continue working on it, as well as helping with daily life expenses.
+
+  You can support the project on <a href="https://patreon.com/ChonkyStation3">Patreon</a> or <a href="https://ko-fi.com/ChonkyStation3">Ko-fi</a>.
+
+  Thank you!
+  </p>
+</div>
+
+<div align="center">
   <h1>Acknowledgements</h1>
 </div>
 <div align="left">
