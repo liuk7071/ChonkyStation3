@@ -9,7 +9,7 @@ u64 CellSysutil::cellSysutilUnregisterCallback() {
 }
 
 u64 CellSysutil::cellSysutilCheckCallback() {
-    //log("cellSysutilCheckCallback() STUBBED\n");
+    log("cellSysutilCheckCallback() STUBBED\n");
 
     for (int i = 0; i < 3; i++) {
         if (callbacks[i].func_ptr) {

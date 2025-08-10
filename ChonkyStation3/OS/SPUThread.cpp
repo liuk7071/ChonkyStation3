@@ -151,7 +151,7 @@ void SPUThread::LocklineWaiter::waiter() {
             is_waiting = false;
         }
         
-        std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+        std::this_thread::sleep_for(std::chrono::nanoseconds(100000));
     }
     
     // The lockline reservation was lost, check if it was acquired before losing it. If not, send lockline lost event
@@ -260,7 +260,7 @@ u32 SPUThread::readChannel(u32 ch) {
     case SPU_RdDec: {
         // TODO: This is a bad stub
         const auto val = decrementer;
-        decrementer -= 10000;
+        decrementer -= 100;
         return val;
     }
     case SPU_RdEventMask:   return -1;  // TODO
@@ -352,6 +352,21 @@ void SPUThread::writeChannel(u32 ch, u32 val) {
             Lv2EventQueue* equeue = ps3->lv2_obj.get<Lv2EventQueue>(ports[spup]);
             equeue->send({ SYS_SPU_THREAD_EVENT_USER_KEY, id, data0, data1 });
         }
+        else if (spup == 128) {
+            Helpers::debugAssert(out_mbox.size(), "sys_event_flag_set_bit: out_mbox is empty\n");
+            const u32 shift = val & 0xffffff;
+            Helpers::debugAssert(shift < 64, "sys_event_flag_set_bit: flag shift value is >= 64\n");
+            u64 flag = 1 << shift;
+            u64 id = out_mbox.front();
+            out_mbox.pop();
+            log("sys_event_flag_set_bit(id: %d, flag: 0x%016llx)\n", id, flag);
+
+            Lv2EventFlag* eflag = ps3->lv2_obj.get<Lv2EventFlag>(id);
+            eflag->set(flag);
+            
+            // Write response to in mbox
+            in_mbox.push(CELL_OK);
+        }
         else if (spup == 192) {
             Helpers::debugAssert(out_mbox.size(), "sys_event_flag_set_bit_impatient: out_mbox is empty\n");
             const u32 shift = val & 0xffffff;
@@ -417,10 +432,12 @@ void SPUThread::doCmd(u32 cmd) {
         log("Starting LS addr: 0x%08x\n", ls_addr);
         for (int i = 0; i < n_elements; i++) {
             MFCListElement* elem = (MFCListElement*)&ls[(eal & 0x3fff8) + i * sizeof(MFCListElement)]; // For list commands EAL is an offset in LS
-            const u32 dst = ls_addr | (elem->ea & 0xf);
-            const u32 src = elem->ea;
-            log("ls[0x%08x] <- mem[0x%08x] size: %d\n", dst, src, (u32)elem->ts);
-            std::memcpy(&ls[dst], ps3->mem.getPtr(src), elem->ts);
+            if (elem->ts) {
+                const u32 dst = ls_addr | (elem->ea & 0xf);
+                const u32 src = elem->ea;
+                log("ls[0x%08x] <- mem[0x%08x] size: %d\n", dst, src, (u32)elem->ts);
+                std::memcpy(&ls[dst], ps3->mem.getPtr(src), elem->ts);
+            }
             ls_addr += elem->ts;
             // TODO: Do I need to align ls_addr to 16 bytes again here?
         }

@@ -599,10 +599,19 @@ void RSX::runCommandList(u64 put_addr) {
     hanged = false;
     u32 last_jump_addr = 0;
     u32 last_jump_dst = 0;
+    // Timeout
+    auto start = std::chrono::steady_clock::now();
+    constexpr auto timeout = std::chrono::seconds(5);
 
     // Execute while get != put
     // We increment get as we fetch data from the FIFO
     while (gcm.ctrl->get != gcm.ctrl->put) {
+        // Check if we timed out
+        if (std::chrono::steady_clock::now() - start > timeout) {
+            log("RSX timed out\n");
+            break;
+        }
+        
         u32 cmd = fetch32();
         auto cmd_num = cmd & 0x3ffff;
         auto argc = (cmd >> 18) & 0x7ff;
@@ -610,8 +619,8 @@ void RSX::runCommandList(u64 put_addr) {
         if (cmd & 0xa0030003) {
             if ((cmd & 0xe0000003) == 0x20000000) { // jump
                 const u32 old_get = gcm.ctrl->get - 4;
-                gcm.ctrl->get = cmd & 0x1fffffff;
-                log("Jump to 0x%08x (cmd: 0x%08x)\n", (u32)gcm.ctrl->get, cmd);
+                gcm.ctrl->get = cmd & 0x1ffffffc;
+                log("0x%08x: Jump to 0x%08x (cmd: 0x%08x)\n", old_get, (u32)gcm.ctrl->get, cmd);
 
                 // Detect hangs
                 if (gcm.ctrl->get == last_jump_dst && old_get == last_jump_addr) {
@@ -627,8 +636,8 @@ void RSX::runCommandList(u64 put_addr) {
 
             if ((cmd & 0xe0000003) == 0x00000001) { // jump
                 const u32 old_get = gcm.ctrl->get - 4;
-                gcm.ctrl->get = cmd & 0x1ffffffc;
-                log("Jump to 0x%08x\n", (u32)gcm.ctrl->get);
+                gcm.ctrl->get = cmd & 0xfffffffc;
+                log("0x%08x: Jump to 0x%08x\n", old_get, (u32)gcm.ctrl->get);
                 
                 // Detect hangs
                 if (gcm.ctrl->get == last_jump_dst && old_get == last_jump_addr) {
@@ -644,7 +653,7 @@ void RSX::runCommandList(u64 put_addr) {
 
             if ((cmd & 0x00000003) == 0x00000002) { // call
                 call_stack.push(gcm.ctrl->get);
-                gcm.ctrl->get = cmd & 0xfffffffc;
+                gcm.ctrl->get = cmd & 0x1ffffffc;
                 log("Call 0x%08x\n", (u32)gcm.ctrl->get);
                 continue;
             }
@@ -654,7 +663,7 @@ void RSX::runCommandList(u64 put_addr) {
                 gcm.ctrl->get = call_stack.top();
                 call_stack.pop();
                 log("Return\n");
-                return;
+                continue;
             }
         }
 
@@ -1517,6 +1526,11 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         fragment_uniforms.push_back({ name, v[0], v[1], v[2], v[3] });
 
         args.clear();
+        break;
+    }
+            
+    case GCM_USER_COMMAND: {
+        Helpers::panic("RSX: user command\n");
         break;
     }
 

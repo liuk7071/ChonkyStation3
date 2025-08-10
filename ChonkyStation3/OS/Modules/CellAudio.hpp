@@ -54,6 +54,7 @@ public:
 
     struct Port {
         u32 id = -1;
+        u32 idx = 0;
         u32 status = CELL_AUDIO_STATUS_CLOSE;
         u64 n_channels = 0;
         u64 n_blocks = 0;

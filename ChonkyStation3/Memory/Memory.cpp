@@ -42,7 +42,7 @@ MemoryRegion::Block* MemoryRegion::allocPhys(size_t size, bool system) {
 }
 
 // Allocates and maps size bytes of memory. Returns virtual address of allocated memory. Marks allocated area as fastmem. Optionally specify the lowest possible virtual address to allocate.
-MemoryRegion::MapEntry* MemoryRegion::alloc(size_t size, u64 start_addr, bool system) {
+MemoryRegion::MapEntry* MemoryRegion::alloc(size_t size, u64 start_addr, bool system, u64 alignment) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     
     // Page alignment
@@ -57,7 +57,7 @@ MemoryRegion::MapEntry* MemoryRegion::alloc(size_t size, u64 start_addr, bool sy
 #endif
     
     // Map area
-    u64 vaddr = findNextAllocatableVaddr(size, start_addr);
+    u64 vaddr = findNextAllocatableVaddr(size, start_addr, alignment);
     MapEntry* entry = mmap(vaddr, paddr, aligned_size, fastmem);
 
     log("Allocated 0x%08llx bytes at 0x%016llx\n", aligned_size, vaddr);
@@ -164,8 +164,13 @@ std::pair<bool, MemoryRegion::MapEntry*> MemoryRegion::findNextMappedArea(u64 st
 }
 
 // Returns the first available unmapped region in the virtual address space big enough to fit size bytes, or 0 if there is none.
-u64 MemoryRegion::findNextAllocatableVaddr(size_t size, u64 start_addr) {
+u64 MemoryRegion::findNextAllocatableVaddr(size_t size, u64 start_addr, u64 alignment) {
+    auto align = [](u64 val, u64 alignment) -> u64 {
+        return (val + alignment - 1) & ~(alignment - 1);
+    };
+    
     u64 vaddr = (start_addr == 0) ? virtual_base : start_addr;
+    vaddr = align(vaddr, alignment);
     u64 aligned_size = pageAlign(size);
 
     // Find the next free area in the address map
@@ -181,6 +186,7 @@ u64 MemoryRegion::findNextAllocatableVaddr(size_t size, u64 start_addr) {
             else {
                 // Keep searching
                 vaddr = next_area.second->vaddr + next_area.second->size;
+                vaddr = align(vaddr, alignment);
                 //log(" not ok\n");
             }
         }
@@ -305,7 +311,8 @@ void Memory::markAsSlowMem(u64 page, bool r, bool w) {
 // Returns a pointer to the data at the specified virtual address
 u8* Memory::getPtr(u64 vaddr) {
     auto [offset, mem] = addrToOffsetInMemory(vaddr);
-    if (!mem) Helpers::panic("Tried to access unmapped vaddr 0x%016llx\n", vaddr);
+    if (!mem)
+        Helpers::panic("Tried to access unmapped vaddr 0x%016llx\n", vaddr);
     return &mem[offset];
 }
 

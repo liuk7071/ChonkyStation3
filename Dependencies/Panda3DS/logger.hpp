@@ -61,7 +61,7 @@ static Logger cellGame              = Logger<true> ("[Module ][cellGame      ] "
 static Logger cellResc              = Logger<false>("[Module ][cellResc      ] ");
 static Logger cellSysmodule         = Logger<true> ("[Module ][cellSysmodule ] ");
 static Logger cellSysutil           = Logger<true> ("[Module ][cellSysutil   ] ");
-static Logger cellGcmSys            = Logger<true> ("[Module ][cellGcmSys    ] ");
+static Logger cellGcmSys            = Logger<1> ("[Module ][cellGcmSys    ] ");
 static Logger cellVideoOut          = Logger<true> ("[Module ][cellVideoOut  ] ");
 static Logger sysLwCond             = Logger<true> ("[Module ][sysLwCond     ] ");
 static Logger sysLwMutex            = Logger<true> ("[Module ][sysLwMutex    ] ");
@@ -71,9 +71,9 @@ static Logger sysThread             = Logger<true> ("[Module ][sysThread     ] "
 
 // Syscalls
 static Logger sys_spu               = Logger<true> ("[Syscall][sys_spu       ] ");
-static Logger sys_semaphore         = Logger<true> ("[Syscall][sys_semaphore ] ");
+static Logger sys_semaphore         = Logger<false>("[Syscall][sys_semaphore ] ");
 static Logger sys_ppu_thread        = Logger<true> ("[Syscall][sys_ppu_thread] ");
-static Logger sys_event_flag        = Logger<true> ("[Syscall][sys_event_flag] ");
+static Logger sys_event_flag        = Logger<false>("[Syscall][sys_event_flag] ");
 static Logger sys_prx               = Logger<true> ("[Syscall][sys_prx       ] ");
 static Logger sys_cond              = Logger<true> ("[Syscall][sys_cond      ] ");
 static Logger sys_rwlock            = Logger<true> ("[Syscall][sys_rwlock    ] ");
@@ -88,7 +88,7 @@ static Logger misc_sc               = Logger<true> ("[Syscall][Misc          ] "
 static Logger tty                   = Logger<1>    ();
 
 // RSX
-static Logger rsx                   = Logger<false>("[RSX    ][Command       ] ");
+static Logger rsx                   = Logger<1>("[RSX    ][Command       ] ");
 static Logger rsx_capture_replayer  = Logger<true> ("[RSX    ][Capture Replay] ");
 static Logger vertex_shader         = Logger<false>("[Shader ][Vertex        ] ");
 static Logger fragment_shader       = Logger<false>("[Shader ][Fragment      ] ");
@@ -105,7 +105,7 @@ static Logger loader_game           = Logger<1>    ("[Loader ][Game          ] "
 static Logger manager_prx           = Logger<1>    ("[Manager][PRX           ] ");
 
 // Thread
-static Logger thread                = Logger<true> ("[Thread ][PPU           ] ");
+static Logger thread                = Logger<false>("[Thread ][PPU           ] ");
 static Logger thread_spu            = Logger<0>("[Thread ][SPU           ] ");
 
 // Other

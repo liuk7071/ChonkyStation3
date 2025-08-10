@@ -55,7 +55,7 @@ public:
     std::vector<MapEntry> map;
 
     Block* allocPhys(size_t size, bool system = false);
-    MapEntry* alloc(size_t size, u64 start_addr = 0, bool system = false);
+    MapEntry* alloc(size_t size, u64 start_addr = 0, bool system = false, u64 alignment = PAGE_SIZE);
     bool canAlloc(size_t size);
     void free(MapEntry* entry);
     void freePhys(Block* block);
@@ -64,7 +64,7 @@ public:
     std::pair<bool, Block*> findBlockWithHandle(u64 handle);
     void freeBlockWithHandle(u64 handle);
     std::pair<bool, MapEntry*> findNextMappedArea(u64 start_addr);
-    u64 findNextAllocatableVaddr(size_t size, u64 start_addr = 0);
+    u64 findNextAllocatableVaddr(size_t size, u64 start_addr = 0, u64 alignment = PAGE_SIZE);
     std::pair<bool, MapEntry*> findMapEntryWithHandle(u64 handle);
     std::pair<bool, MapEntry*> isMapped(u64 vaddr);
     MapEntry* mmap(u64 vaddr, u64 paddr, size_t size, bool fastmem = true);
@@ -109,7 +109,7 @@ public:
     void markAsSlowMem(u64 page, bool r, bool w);
 
     MemoryRegion::Block* allocPhys(size_t size) { return ram.allocPhys(size); }
-    MemoryRegion::MapEntry* alloc(size_t size, u64 start_addr = 0, bool system = false) { return ram.alloc(size, start_addr, system); }
+    MemoryRegion::MapEntry* alloc(size_t size, u64 start_addr = 0, bool system = false, u64 alignment = PAGE_SIZE) { return ram.alloc(size, start_addr, system, alignment); }
     bool canAlloc(size_t size) { return ram.canAlloc(size); }
     void free(MemoryRegion::MapEntry* entry) { ram.free(entry); }
     void freePhys(MemoryRegion::Block* block) { ram.freePhys(block); }
@@ -118,7 +118,7 @@ public:
     std::pair<bool, MemoryRegion::Block*> findBlockWithHandle(u64 handle) { return ram.findBlockWithHandle(handle); }
     void freeBlockWithHandle(u64 handle) { ram.freeBlockWithHandle(handle); }
     std::pair<bool, MemoryRegion::MapEntry*> findNextMappedArea(u64 start_addr) { return ram.findNextMappedArea(start_addr); }
-    u64 findNextAllocatableVaddr(size_t size, u64 start_addr = 0) { return ram.findNextAllocatableVaddr(size, start_addr); }
+    u64 findNextAllocatableVaddr(size_t size, u64 start_addr = 0, u64 alignment = PAGE_SIZE) { return ram.findNextAllocatableVaddr(size, start_addr, alignment); }
     std::pair<bool, MemoryRegion::MapEntry*> findMapEntryWithHandle(u64 handle) { return ram.findMapEntryWithHandle(handle); }
     std::pair<bool, MemoryRegion::MapEntry*> isMapped(u64 vaddr) { return ram.isMapped(vaddr); }
     MemoryRegion::MapEntry* mmap(u64 vaddr, u64 paddr, size_t size, bool fastmem = true) { return ram.mmap(vaddr, paddr, size, fastmem); }

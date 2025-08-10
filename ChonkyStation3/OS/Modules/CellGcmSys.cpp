@@ -14,6 +14,14 @@ u64 CellGcmSys::cellGcmGetTiledPitchSize() {
     return 0;
 }
 
+u64 CellGcmSys::cellGcmSetQueueHandler() {
+    const u32 handler_ptr = ARG0;
+    log("cellGcmGetDisplayInfo(handler_ptr: 0x%08x)\n");
+    
+    queue_handler = handler_ptr;    
+    return CELL_OK;
+}
+
 u64 CellGcmSys::cellGcmGetDisplayInfo() {
     log("cellGcmGetDisplayInfo()\n");
     return buffer_info_addr;
@@ -54,6 +62,9 @@ u64 CellGcmSys::cellGcmInitBody() {
     ctx->current = ctx->begin;
     ctx->callback = callback_addr;
 
+    log("Initialized context\n");
+    log("begin: 0x%08x, end: 0x%08x, current: 0x%08x\n", (u32)ctx->begin, (u32)ctx->end, (u32)ctx->current);
+    
     dma_ctrl_addr = ps3->mem.rsx.alloc(3_MB)->vaddr;
     std::memset(ps3->mem.getPtr(dma_ctrl_addr), 0, 3_MB);
     ctrl_addr = dma_ctrl_addr + 0x40;
@@ -99,6 +110,11 @@ u64 CellGcmSys::cellGcmInitBody() {
     auto thread = ps3->thread_manager.createThread(vblank_thread_entry, 1, 0, 0, (const u8*)"gcm_vblank_thread", 0, 0, 0);
     thread->state.pc = vblank_thread_entry;
 
+    // cellGcm writes some commands on init
+    //ctx->current = ctx->begin + 0x3a0;
+    //ctrl->get = 0x13a0;
+    //ctrl->put = ctrl->get;
+    
     return CELL_OK;
 }
 
@@ -119,8 +135,9 @@ void CellGcmSys::unmapEaIo(u32 ea, u32 io) {
 }
 
 // Converts an address to an IO offset
-u32 CellGcmSys::addressToOffset(u32 addr) {
+u32 CellGcmSys::addressToOffset(u32 addr, bool& ok) {
     u32 offs = 0;
+    ok = true;
     // Check if the address is in RSX memory
     if (Helpers::inRange<u32>(addr, gcm_config.local_addr, gcm_config.local_addr + gcm_config.local_size - 1)) {
         offs = addr - gcm_config.local_addr;
@@ -132,7 +149,7 @@ u32 CellGcmSys::addressToOffset(u32 addr) {
         if (page != 0xffff)
             offs = (page << 20) | (addr & 0xfffff);
         else {
-            Helpers::panic("cellGcmAddressToOffset: addr is not in rsx memory or io memory(0x%08x)\n", addr);
+            ok = false;
         }
     }
     return offs;
@@ -176,13 +193,21 @@ bool CellGcmSys::isIoOffsMapped(u32 io) {
 u64 CellGcmSys::_cellGcmSetFlipCommand() {
     const u32 context_addr = ARG0;
     const u32 buf_id = ARG1;
-    //log("_cellGcmSetFlipCommand(ctx_addr: 0x%08x, buf_id: %d)\n", context_addr, buf_id);
+    log("_cellGcmSetFlipCommand(ctx_addr: 0x%08x, buf_id: %d)\n", context_addr, buf_id);
 
     CellGcmContextData* context = (CellGcmContextData*)ps3->mem.getPtr(context_addr);
+    log("begin: 0x%08x, end: 0x%08x, current: 0x%08x\n", (u32)context->begin, (u32)context->end, (u32)context->current);
+
     if (context->current + 8 >= context->end) cellGcmCallback();
     ps3->mem.write<u32>(context->current, RSX::GCM_FLIP_COMMAND | (1 << 18));   // 1 is argc
     ps3->mem.write<u32>(context->current + 4, buf_id);
     context->current = context->current + 8;
+    
+    // Call queue handler
+    if (queue_handler) {
+        ps3->ppu->state.gprs[3] = 1; // Handler function is always called with 1 as first argument
+        ps3->ppu->runFunc(ps3->mem.read<u32>(queue_handler), ps3->mem.read<u32>(queue_handler + 4));
+    }
 
     return CELL_OK;
 }
@@ -190,9 +215,16 @@ u64 CellGcmSys::_cellGcmSetFlipCommand() {
 u64 CellGcmSys::cellGcmAddressToOffset() {
     const u32 addr = ARG0;
     const u32 offs_ptr = ARG1;
-    log("cellGcmAddressToOffset(addr: 0x%08x, offs_ptr: 0x%08x)\n", addr, offs_ptr);
+    log("cellGcmAddressToOffset(addr: 0x%08x, offs_ptr: 0x%08x) @ 0x%08x\n", addr, offs_ptr, ps3->ppu->state.lr);
 
-    const u32 offs = addressToOffset(addr);
+    bool ok;
+    const u32 offs = addressToOffset(addr, ok);
+    if (!ok) {  // Tomb Raider (2013) relies on this
+        log("WARNING: cellGcmAddressToOffset: addr is not in rsx memory or io memory(0x%08x)\n", addr);
+        return CELL_GCM_ERROR_FAILURE;
+    }
+    
+    log("Offset: 0x%08x\n", offs);
 
     //logNoPrefix(" [offs: 0x%08x]\n", offs);
     ps3->mem.write<u32>(offs_ptr, offs);
@@ -417,7 +449,6 @@ u64 CellGcmSys::cellGcmSetVBlankHandler() {
     log("cellGcmSetVBlankHandler(handler_ptr: 0x%08x)\n", handler_ptr);
 
     vblank_handler = handler_ptr;
-    ps3->vblank();
     return CELL_OK;
 }
 
@@ -599,7 +630,9 @@ u64 CellGcmSys::cellGcmCallback() {
     log("get: 0x%08x, put: 0x%08x\n", (u32)ctrl->get, (u32)ctrl->put);
 
     // cellGcmCallback automatically flushes the cmd buffer
-    ctrl->put = addressToOffset(ctx->current);
+    bool ok;
+    ctrl->put = addressToOffset(ctx->current, ok);
+    Helpers::debugAssert(ok, "cellGcmCallback: addressToOffset error\n");
     log("Flushing RSX command buffer up to offs 0x%08x\n", (u32)ctrl->put);
     ps3->rsx.runCommandList();
 
@@ -618,7 +651,8 @@ u64 CellGcmSys::cellGcmCallback() {
     }
     
     // Write jump command
-    ps3->mem.write<u32>(ctx->current, 0x20000000 | addressToOffset(new_begin));
+    ps3->mem.write<u32>(ctx->current, 0x20000000 | addressToOffset(new_begin, ok));
+    Helpers::debugAssert(ok, "cellGcmCallback: addressToOffset error in jmp command\n");
     
     // Update cmd buffer structure
     ctx->begin   = new_begin;

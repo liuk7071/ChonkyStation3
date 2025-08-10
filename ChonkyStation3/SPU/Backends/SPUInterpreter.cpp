@@ -227,7 +227,7 @@ int SPUInterpreter::step() {
     if (!enabled) return 0;
     
     int cycles = 0;
-    const int limit = ps3->thread_manager.getCurrentThread()->id == ps3->thread_manager.idle_thread_id ? 4096 : 128;
+    const int limit = ps3->thread_manager.getCurrentThread()->id == ps3->thread_manager.idle_thread_id ? 40960 : 1280;
     should_break = false;
     
     while (!should_break) {
@@ -547,7 +547,7 @@ void SPUInterpreter::frest(const SPUInstruction& instr) {
 
     for (int i = 0; i < 4; i++) {
         const float val = state.gprs[instr.ra].f[i];
-        Helpers::debugAssert(exp(val), "frest: zero exponent (val = %f, exp = %d)\n", val, exp(val));
+        if(exp(val) == 0) printf("WARNING! frest: zero exponent (val = %f, exp = %d)\n", val, exp(val));
         state.gprs[instr.rt0].f[i] = 1.0f / val;
     }
 }
@@ -852,6 +852,13 @@ void SPUInterpreter::orc(const SPUInstruction& instr) {
     state.gprs[instr.rt0].dw[1] = state.gprs[instr.ra].dw[1] | ~state.gprs[instr.rb].dw[1];
 }
 
+void SPUInterpreter::fcmgt(const SPUInstruction& instr) {
+    state.gprs[instr.rt0].w[0] = (std::abs(state.gprs[instr.ra].f[0]) > std::abs(state.gprs[instr.rb].f[0])) ? 0xffffffff : 0;
+    state.gprs[instr.rt0].w[1] = (std::abs(state.gprs[instr.ra].f[1]) > std::abs(state.gprs[instr.rb].f[1])) ? 0xffffffff : 0;
+    state.gprs[instr.rt0].w[2] = (std::abs(state.gprs[instr.ra].f[2]) > std::abs(state.gprs[instr.rb].f[2])) ? 0xffffffff : 0;
+    state.gprs[instr.rt0].w[3] = (std::abs(state.gprs[instr.ra].f[3]) > std::abs(state.gprs[instr.rb].f[3])) ? 0xffffffff : 0;
+}
+
 void SPUInterpreter::dfa(const SPUInstruction& instr) {
     state.gprs[instr.rt0].d[0] = state.gprs[instr.ra].d[0] + state.gprs[instr.rb].d[0];
     state.gprs[instr.rt0].d[1] = state.gprs[instr.ra].d[1] + state.gprs[instr.rb].d[1];
@@ -994,6 +1001,14 @@ void SPUInterpreter::csflt(const SPUInstruction& instr) {
     state.gprs[instr.rt0].f[1] = (float)(s32)state.gprs[instr.ra].w[1] / scale;
     state.gprs[instr.rt0].f[2] = (float)(s32)state.gprs[instr.ra].w[2] / scale;
     state.gprs[instr.rt0].f[3] = (float)(s32)state.gprs[instr.ra].w[3] / scale;
+}
+
+void SPUInterpreter::cuflt(const SPUInstruction& instr) {
+    const u32 scale = 1 << (155 - instr.i8);
+    state.gprs[instr.rt0].f[0] = (float)state.gprs[instr.ra].w[0] / scale;
+    state.gprs[instr.rt0].f[1] = (float)state.gprs[instr.ra].w[1] / scale;
+    state.gprs[instr.rt0].f[2] = (float)state.gprs[instr.ra].w[2] / scale;
+    state.gprs[instr.rt0].f[3] = (float)state.gprs[instr.ra].w[3] / scale;
 }
 
 void SPUInterpreter::brz(const SPUInstruction& instr) {
@@ -1420,7 +1435,7 @@ UNIMPL_INSTR(dfcgt);
 //UNIMPL_INSTR(fm);
 //UNIMPL_INSTR(clgth);
 //UNIMPL_INSTR(orc);
-UNIMPL_INSTR(fcmgt);
+//UNIMPL_INSTR(fcmgt);
 UNIMPL_INSTR(dfcmgt);
 //UNIMPL_INSTR(dfa);
 //UNIMPL_INSTR(dfs);
@@ -1460,7 +1475,7 @@ UNIMPL_INSTR(dfcmeq);
 //UNIMPL_INSTR(cflts);
 UNIMPL_INSTR(cfltu);
 //UNIMPL_INSTR(csflt);
-UNIMPL_INSTR(cuflt);
+//UNIMPL_INSTR(cuflt);
 //UNIMPL_INSTR(brz);
 //UNIMPL_INSTR(stqa);
 //UNIMPL_INSTR(brnz);

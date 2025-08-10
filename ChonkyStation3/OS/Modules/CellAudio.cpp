@@ -21,8 +21,7 @@ void CellAudio::audioThread() {
             }
             
             // Get current block
-            u64 read_idx = ps3->mem.read<u64>(read_positions_addr + i * sizeof(u64));
-            float* curr_buf = (float*)ps3->mem.getPtr(ports[i].addr + read_idx * block_size);
+            float* curr_buf = (float*)ps3->mem.getPtr(ports[i].addr + ports[i].idx * block_size);
             
             for (int i = 0; i < block_size / sizeof(float); i++) {
                 u32 val = Helpers::bswap<u32>(reinterpret_cast<u32&>(curr_buf[i]));
@@ -32,14 +31,14 @@ void CellAudio::audioThread() {
             
             // Increment read idx
             if (!ps3->settings.debug.dont_step_cellaudio_port_read_idx) {
-                read_idx++;
-                read_idx %= ports[i].n_blocks;
-                ps3->mem.write<u64>(read_positions_addr + i * sizeof(u64), read_idx);
+                ports[i].idx++;
+                ports[i].idx %= ports[i].n_blocks;
+                ps3->mem.write<u64>(read_positions_addr + i * sizeof(u64), ports[i].idx);
             }
             
             // Send aftermix event
             if (equeue_id) {
-                ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->send({ CellAudio::EVENT_QUEUE_KEY, 0, 0, 0 });
+                //ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->send({ CellAudio::EVENT_QUEUE_KEY, 0, 0, 0 });
             }
         }
         
@@ -71,7 +70,7 @@ u64 CellAudio::cellAudioCreateNotifyEventQueue() {
     const u32 equeue_id_ptr = ARG0;
     const u32 key_ptr = ARG1;   // key is u64
     log("cellAudioCreateNotifyEventQueue(equeue_id_ptr: 0x%08x, key_ptr: 0%08x)\n", equeue_id_ptr, key_ptr);
-    const std::lock_guard<std::mutex> lock(audio_mutex);
+    const std::scoped_lock<std::mutex> lock(audio_mutex);
     
     Lv2EventQueue* equeue = ps3->lv2_obj.create<Lv2EventQueue>();
     equeue_id = equeue->handle();
@@ -84,6 +83,7 @@ u64 CellAudio::cellAudioCreateNotifyEventQueue() {
 u64 CellAudio::cellAudioPortClose() {
     u32 port_num = ARG0;
     log("cellAudioPortClose(port_num: %d)\n", port_num);
+    const std::scoped_lock<std::mutex> lock(audio_mutex);
     
     ports[port_num].status = CELL_AUDIO_STATUS_CLOSE;
     return CELL_OK;
@@ -108,7 +108,7 @@ u64 CellAudio::cellAudioSetNotifyEventQueue() {
     const u64 key = ARG0;
     log("cellAudioSetNotifyEventQueue(key: 0x%016llx)\n", key);
     //Helpers::debugAssert(key == EVENT_QUEUE_KEY, "TODO: cellAudioSetNotifyEventQueue with custom event queue\n");
-    const std::lock_guard<std::mutex> lock(audio_mutex);
+    const std::scoped_lock<std::mutex> lock(audio_mutex);
     
     return CELL_OK;
 }
@@ -117,7 +117,7 @@ u64 CellAudio::cellAudioGetPortConfig() {
     u32 port_num = ARG0;
     u32 config_ptr = ARG1;
     log("cellAudioGetPortConfig(port_num: %d, config_ptr: 0x%08x)\n", port_num, config_ptr);
-    const std::lock_guard<std::mutex> lock(audio_mutex);
+    const std::scoped_lock<std::mutex> lock(audio_mutex);
 
     Helpers::debugAssert(port_num < 8, "cellAudioGetPortConfig: port_num is invalid (%d)\n", port_num);
     Port& port = ports[port_num];
@@ -136,7 +136,7 @@ u64 CellAudio::cellAudioGetPortConfig() {
 u64 CellAudio::cellAudioPortStart() {
     u32 port_num = ARG0;
     log("cellAudioPortStart(port_num: %d)\n", port_num);
-    const std::lock_guard<std::mutex> lock(audio_mutex);
+    const std::scoped_lock<std::mutex> lock(audio_mutex);
     
     Helpers::debugAssert(port_num < 8, "cellAudioPortStart: port_num is invalid (%d)\n", port_num);
     Port& port = ports[port_num];
@@ -149,7 +149,7 @@ u64 CellAudio::cellAudioPortOpen() {
     const u32 param_ptr = ARG0;
     const u32 port_ptr = ARG1;
     log("cellAudioPortOpen(param_ptr: 0x%08x, port_ptr: 0x%08x)\n", param_ptr, port_ptr);
-    const std::lock_guard<std::mutex> lock(audio_mutex);
+    const std::scoped_lock<std::mutex> lock(audio_mutex);
 
     CellAudioPortParam* param = (CellAudioPortParam*)ps3->mem.getPtr(param_ptr);
 
@@ -172,7 +172,7 @@ u64 CellAudio::cellAudioPortOpen() {
 
     // Allocate memory
     port->size = port->n_channels * port->n_blocks * 256 * sizeof(float);
-    port->addr = ps3->mem.alloc(port->size, true)->vaddr;
+    port->addr = ps3->mem.alloc(port->size, 0, true)->vaddr;
 
     ps3->mem.write<u32>(port_ptr, port->id);
     log("Opened port %d (channels: %d, blocks: %d)\n", port->id, port->n_channels, port->n_blocks);

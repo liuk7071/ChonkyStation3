@@ -623,6 +623,7 @@ public:
         NV3089_IMAGE_IN                                         = 0x0000C40C,
 
         // GCM
+        GCM_USER_COMMAND                                        = 0x0000EB00,
         GCM_FLIP_COMMAND                                        = 0x0000FEAC,
     };
 

@@ -44,7 +44,9 @@ u64 Syscall::sys_memory_allocate() {
     const u32 alloc_ptr = ARG2;
     log_sys_memory("sys_memory_allocate(size: 0x%08x, flags: 0x%08x, alloc_ptr: 0x%08x)\n", size, flags, alloc_ptr);
 
-    auto block = ps3->mem.alloc(size, 0x20000000);
+    const auto alignment = flags == 0x400 ? 1_MB : 64_KB;
+    
+    auto block = ps3->mem.alloc(size, 0x20000000, false, alignment);
     ps3->mem.write<u32>(alloc_ptr, block->vaddr);
 
     return CELL_OK;

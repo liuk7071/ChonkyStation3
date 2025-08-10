@@ -150,7 +150,7 @@ void PlayStation3::run() {
     }
 }
 
-static constexpr int reschedule_every_n_cycles = 512 * 2048;
+static constexpr int reschedule_every_n_cycles = 2048 * 2048;
 void PlayStation3::step() {
     const int ppu_cycles = ppu->step();
     const int spu_cycles = spu->step();
@@ -160,6 +160,7 @@ void PlayStation3::step() {
     if (curr_block_cycles > reschedule_every_n_cycles) {
         curr_block_cycles = 0;
         thread_manager.reschedule();
+        //if (rsx.hanged) rsx.runCommandList();
     }
 }
 
@@ -188,8 +189,18 @@ void PlayStation3::printCrashInfo(std::runtime_error err) {
     std::exit(0);
 }
 
-void PlayStation3::flip() {
+void PlayStation3::flip() {    
+    // Queue handler
+    if (module_manager.cellGcmSys.queue_handler) {
+        u32 old_r3 = ppu->state.gprs[3];
+        ppu->state.gprs[3] = 1; // Handler function is always called with 1 as first argument
+        ppu->runFunc(mem.read<u32>(module_manager.cellGcmSys.queue_handler), mem.read<u32>(module_manager.cellGcmSys.queue_handler + 4));
+        ppu->state.gprs[3] = old_r3;
+    }
+    
     module_manager.cellGcmSys.flip = 0;
+
+    // Flip callback
     if (module_manager.cellGcmSys.flip_callback) {
         u32 old_r3 = ppu->state.gprs[3];
         ppu->state.gprs[3] = 1; // Callback function is always called with 1 as first argument

@@ -16,6 +16,8 @@ using namespace CellTypes;
 
 static constexpr u32 CMD_BUFFER_SIZE = 32_KB;
 
+static constexpr u32 CELL_GCM_ERROR_FAILURE = 0x802100ff;
+
 class CellGcmSys {
 public:
     CellGcmSys(PlayStation3* ps3) : ps3(ps3) {}
@@ -84,17 +86,19 @@ public:
     u32 flip_callback = 0;
     u32 vblank_handler = 0;
     u32 vblank2_handler = 0;
-    u32 command_size = 0x400;
-    u32 segment_size = 0x100;
+    u32 queue_handler = 0;
+    u32 command_size = 0x20000;
+    u32 segment_size = 0x2000;
     u32 n_cmd_bufs = 0;
 
     void mapEaIo(u32 ea, u32 io);
     void unmapEaIo(u32 ea, u32 io);
-    u32 addressToOffset(u32 addr);
+    u32 addressToOffset(u32 addr, bool& ok);
     bool isIoOffsMapped(u32 io);
     void printOffsetTable();
 
     u64 cellGcmGetTiledPitchSize();
+    u64 cellGcmSetQueueHandler();
     u64 cellGcmGetDisplayInfo();
     u64 cellGcmInitBody();
     u64 _cellGcmSetFlipCommand();
