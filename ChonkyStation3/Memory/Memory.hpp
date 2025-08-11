@@ -130,15 +130,12 @@ public:
         u64 thread_id = 0;
         u64 vaddr = 0;
         size_t size = 0;
-        std::vector<std::function<void(void)>> reservation_lost_handlers = {};
+        u64 data = 0;
     };
     void reserveAddress(u64 vaddr);
-    void reserveAddress(u64 vaddr, size_t size, u64 thread_id, std::optional<std::function<void(void)>> reservation_lost_handler = std::nullopt, bool is_spu = false);
+    void reserveAddress(u64 vaddr, size_t size, u64 thread_id);
     bool acquireReservation(u64 vaddr); // Returns false if the reservation was lost
     bool acquireReservation(u64 vaddr, u64 thread_id);
-    void addReservationLostHandler(u64 vaddr, std::function<void(void)> reservation_lost_handler);
-    void reservedWrite(u64 vaddr);  // Handler function for reserved writes
-    void deleteReservation(u64 vaddr);
     u64 getReservationOwner(u64 vaddr);
     bool isAddressReserved(u64 vaddr);
     void setCurrentThreadID(u64 id) { curr_thread_id = id; }

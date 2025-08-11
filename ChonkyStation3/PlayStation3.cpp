@@ -294,11 +294,6 @@ void PlayStation3::createAudioDevice() {
 }
 
 void PlayStation3::terminate() {
-    // Join lockline waiter threads
-    for (auto& thread : spu_thread_manager.threads) {
-        thread.lockline_waiter->end();
-    }
-    
     // Join audio thread
     module_manager.cellAudio.endAudioThread();
 

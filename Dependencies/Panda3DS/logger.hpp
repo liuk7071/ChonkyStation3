@@ -61,7 +61,7 @@ static Logger cellGame              = Logger<true> ("[Module ][cellGame      ] "
 static Logger cellResc              = Logger<false>("[Module ][cellResc      ] ");
 static Logger cellSysmodule         = Logger<true> ("[Module ][cellSysmodule ] ");
 static Logger cellSysutil           = Logger<true> ("[Module ][cellSysutil   ] ");
-static Logger cellGcmSys            = Logger<1> ("[Module ][cellGcmSys    ] ");
+static Logger cellGcmSys            = Logger<true> ("[Module ][cellGcmSys    ] ");
 static Logger cellVideoOut          = Logger<true> ("[Module ][cellVideoOut  ] ");
 static Logger sysLwCond             = Logger<true> ("[Module ][sysLwCond     ] ");
 static Logger sysLwMutex            = Logger<true> ("[Module ][sysLwMutex    ] ");
@@ -88,7 +88,7 @@ static Logger misc_sc               = Logger<true> ("[Syscall][Misc          ] "
 static Logger tty                   = Logger<1>    ();
 
 // RSX
-static Logger rsx                   = Logger<1>("[RSX    ][Command       ] ");
+static Logger rsx                   = Logger<false>("[RSX    ][Command       ] ");
 static Logger rsx_capture_replayer  = Logger<true> ("[RSX    ][Capture Replay] ");
 static Logger vertex_shader         = Logger<false>("[Shader ][Vertex        ] ");
 static Logger fragment_shader       = Logger<false>("[Shader ][Fragment      ] ");

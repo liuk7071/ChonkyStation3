@@ -184,26 +184,8 @@ public:
         u8 data[128];
     };
     Reservation reservation;
-
-    class LocklineWaiter {
-    public:
-        LocklineWaiter(PlayStation3* ps3, u32 waiter_id) : ps3(ps3), waiter_id(waiter_id) {}
-        PlayStation3* ps3;
-        u32 waiter_id;
-
-        void waiter();
-        void begin(Reservation reservation);
-        void end();
-
-    private:
-        std::atomic<bool> is_waiting = false;
-        std::atomic<bool> acquired = false;
-        Reservation reservation;
-        std::thread waiter_thread;
-    };
-    LocklineWaiter* lockline_waiter;
-
-    void sendLocklineLostEvent(u32 addr);
+    
+    void sendLocklineLostEvent();
     void wakeUpIfEvent();
     bool hasPendingEvents();
 

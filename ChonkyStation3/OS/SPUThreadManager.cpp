@@ -78,3 +78,64 @@ void SPUThreadManager::reschedule() {
         current_thread_id = 0;
     }
 }
+
+void SPUThreadManager::createReservation(u32 addr) {
+    const auto id = current_thread_id;
+    reservation_map[id].addr = addr;
+    std::memcpy(reservation_map[id].data, ps3->mem.getPtr(addr), 128);
+    
+    // Setup memory watchpoints
+    for (u32 curr_addr = addr; curr_addr < addr + 128; curr_addr++) {
+        ps3->mem.watchpoints_w[curr_addr] = std::bind(&SPUThreadManager::reservationWritten, this, std::placeholders::_1);
+        // Slowmem for writes (to trigger the watchpoints)
+        // We do this in the loop because the SPU could technically reserve an area that crosses page boundaries (although very unlikely to happen)
+        ps3->mem.markAsSlowMem(curr_addr >> PAGE_SHIFT, false, true);
+    }
+}
+
+// Returns whether the reservation was acquired successfully
+bool SPUThreadManager::acquireReservation(u32 addr) {
+    const auto id = current_thread_id;
+    if (reservation_map.contains(id)) {
+        if (reservation_map[id].addr != addr) {
+            reservation_map.erase(id);
+            return false;
+        } else {
+            reservation_map.erase(id);
+            
+            // Lose the reservation for any other threads that reserved the same address
+            std::vector<u32> woken_up;
+            for (auto [other_id, reservation] : reservation_map) {
+                if (addr == reservation.addr) {
+                    ps3->scheduler.push(std::bind(&SPUThread::sendLocklineLostEvent, getThreadByID(other_id)), 5000);
+                    //getThreadByID(other_id)->sendLocklineLostEvent();
+                    woken_up.push_back(other_id);
+                }
+            }
+            
+            for (auto i : woken_up) {
+                reservation_map.erase(i);
+            }
+            return true;
+        }
+    } else return false;
+}
+
+void SPUThreadManager::reservationWritten(u64 vaddr) {
+    std::vector<u32> woken_up;
+    for (auto [id, reservation] : reservation_map) {
+        if (Helpers::inRangeSized<u32>(vaddr, reservation.addr, 128)) {
+            // Check if the data changed
+            if (std::memcmp(reservation.data, ps3->mem.getPtr(reservation.addr), 128)) {
+                ps3->scheduler.push(std::bind(&SPUThread::sendLocklineLostEvent, getThreadByID(id)), 10000);
+                //getThreadByID(id)->sendLocklineLostEvent();
+                woken_up.push_back(id);
+            }
+        }
+    }
+    
+    for (auto id : woken_up) {
+        log("Lockline written, woke up thread %d\n", id);
+        reservation_map.erase(id);
+    }
+}
