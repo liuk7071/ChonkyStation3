@@ -41,8 +41,7 @@ void PPUInterpreter::printFunctionCall() {
 int PPUInterpreter::step() {
     int cycles = 0;
 
-    should_break = false;
-    while (!should_break) {
+    do {
         const u32 instr_raw = mem.read<u32>(state.pc);
         const Instruction instr = { .raw = instr_raw };
         
@@ -95,10 +94,13 @@ int PPUInterpreter::step() {
                             case VRSQRTEFP: vrsqrtefp(instr);   break;
                             case VMRGLH:    vmrglh(instr);      break;
                             case VSLW:      vslw(instr);        break;
+                            case VEXPTEFP:  vexptefp(instr);    break;
                             case VMRGLW:    vmrglw(instr);      break;
                             case VCMPGEFP_:
                             case VCMPGEFP:  vcmpgefp(instr);    break;
                             case VPKSWSS:   vpkswss(instr);     break;
+                            case VCMPGTUB_:
+                            case VCMPGTUB:  vcmpgtub(instr);    break;
                             case VSPLTB:    vspltb(instr);      break;
                             case VUPKHSB:   vupkhsb(instr);     break;
                             case VCMPGTUH_:
@@ -133,6 +135,8 @@ int PPUInterpreter::step() {
                             case VSUBUWM:   vsubuwm(instr);     break;
                             case VOR:       vor(instr);         break;
                             case VNOR:      vnor(instr);        break;
+                            case MFVSCR:    mfvscr(instr);      break;
+                            case MTVSCR:    mtvscr(instr);      break;
                             case VXOR:      vxor(instr);        break;
                             case VSUBSHS:   vsubshs(instr);     break;
                                 
@@ -403,8 +407,9 @@ int PPUInterpreter::step() {
         
         state.pc += 4;
         if (cycles++ > 2048) should_break = true;
-    }
+    } while (!should_break);
     
+    should_break = false;
     return cycles;
 }
 
@@ -960,6 +965,13 @@ void PPUInterpreter::vslw(const Instruction& instr) {
     state.vrs[instr.vd].w[3] = state.vrs[instr.va].w[3] << (state.vrs[instr.vb].w[3] & 0x1f);
 }
 
+void PPUInterpreter::vexptefp(const Instruction& instr) {
+    state.vrs[instr.vd].f[0] = std::powf(2.0f, state.vrs[instr.vb].f[0]);
+    state.vrs[instr.vd].f[1] = std::powf(2.0f, state.vrs[instr.vb].f[1]);
+    state.vrs[instr.vd].f[2] = std::powf(2.0f, state.vrs[instr.vb].f[2]);
+    state.vrs[instr.vd].f[3] = std::powf(2.0f, state.vrs[instr.vb].f[3]);
+}
+
 void PPUInterpreter::vmrglw(const Instruction& instr) {
     const VR a = state.vrs[instr.va];
     const VR b = state.vrs[instr.vb];
@@ -1000,6 +1012,25 @@ void PPUInterpreter::vpkswss(const Instruction& instr) {
         else if (val < INT16_MIN)   val = INT16_MIN;
         state.vrs[instr.vd].h[i] = val;
     }
+}
+
+void PPUInterpreter::vcmpgtub(const Instruction& instr) {
+    u8 all_equal = 0x8;
+    u8 none_equal = 0x2;
+
+    for (int i = 0; i < 16; i++) {
+        if (state.vrs[instr.va].b[i] > state.vrs[instr.vb].b[i]) {
+            state.vrs[instr.vd].b[i] = 0xff;
+            none_equal = 0;
+        }
+        else {
+            state.vrs[instr.vd].b[i] = 0;
+            all_equal = 0;
+        }
+    }
+
+    if (instr.rc_v)
+        state.cr.setCRField(6, all_equal | none_equal);
 }
 
 void PPUInterpreter::vspltb(const Instruction& instr) {
@@ -1297,6 +1328,14 @@ void PPUInterpreter::vor(const Instruction& instr) {
 void PPUInterpreter::vnor(const Instruction& instr) {
     state.vrs[instr.vd].dw[0] = ~(state.vrs[instr.va].dw[0] | state.vrs[instr.vb].dw[0]);
     state.vrs[instr.vd].dw[1] = ~(state.vrs[instr.va].dw[1] | state.vrs[instr.vb].dw[1]);
+}
+
+void PPUInterpreter::mfvscr(const Instruction& instr) {
+    printf("TODO: mfvscr\n");
+}
+
+void PPUInterpreter::mtvscr(const Instruction& instr) {
+    printf("TODO: mtvscr\n");
 }
 
 void PPUInterpreter::vxor(const Instruction& instr) {

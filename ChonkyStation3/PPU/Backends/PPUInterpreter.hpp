@@ -18,7 +18,6 @@ class PPUInterpreter : public PPU {
 public:
     PPUInterpreter(Memory& mem, PlayStation3* ps3);
     int step() override;
-    bool should_break = false;
 
     u64 rotation_mask[64][64];
 
@@ -111,9 +110,11 @@ public:
     void vrsqrtefp  (const Instruction& instr);
     void vmrglh     (const Instruction& instr);
     void vslw       (const Instruction& instr);
+    void vexptefp   (const Instruction& instr);
     void vmrglw     (const Instruction& instr);
     void vcmpgefp   (const Instruction& instr);
     void vpkswss    (const Instruction& instr);
+    void vcmpgtub   (const Instruction& instr);
     void vspltb     (const Instruction& instr);
     void vupkhsb    (const Instruction& instr);
     void vcmpgtuh   (const Instruction& instr);
@@ -145,6 +146,8 @@ public:
     void vsubuwm    (const Instruction& instr);
     void vor        (const Instruction& instr);
     void vnor       (const Instruction& instr);
+    void mfvscr     (const Instruction& instr);
+    void mtvscr     (const Instruction& instr);
     void vxor       (const Instruction& instr);
     void vsubshs    (const Instruction& instr);
     // G_13

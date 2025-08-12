@@ -79,6 +79,7 @@ public:
     u64 cellAudioInit();
     u64 cellAudioSetNotifyEventQueue();
     u64 cellAudioGetPortConfig();
+    u64 cellAudioAddData();
     u64 cellAudioPortStart();
     u64 cellAudioPortOpen();
 

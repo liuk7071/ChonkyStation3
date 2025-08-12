@@ -132,8 +132,13 @@ struct VertexArray {
     bool exists() const { return m_handle != 0; }
     void bind() const { glBindVertexArray(m_handle); }
 
-    template <typename T>
+    template <typename T, bool is_half_float = false>
     void setAttributeFloat(GLuint index, GLint size, GLsizei stride, const void* offset, bool normalized = GL_FALSE) {
+        if constexpr (is_half_float) {
+            glVertexAttribPointer(index, size, GL_HALF_FLOAT, normalized, stride, offset);
+            return;
+        }
+        
         if constexpr (std::is_same<T, GLfloat>()) {
             glVertexAttribPointer(index, size, GL_FLOAT, normalized, stride, offset);
         }

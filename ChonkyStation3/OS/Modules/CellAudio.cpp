@@ -6,7 +6,6 @@
 void CellAudio::audioThread() {
     while (true) {
         if (end_audio_thread) break;
-
         audio_mutex.lock();
         
         int sampled = 0;
@@ -38,7 +37,7 @@ void CellAudio::audioThread() {
             
             // Send aftermix event
             if (equeue_id) {
-                //ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->send({ CellAudio::EVENT_QUEUE_KEY, 0, 0, 0 });
+                ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->send({ CellAudio::EVENT_QUEUE_KEY, 0, 0, 0 });
             }
         }
         
@@ -133,8 +132,25 @@ u64 CellAudio::cellAudioGetPortConfig() {
     return CELL_OK;
 }
 
+u64 CellAudio::cellAudioAddData() {
+    const u32 port_num = ARG0;
+    const u32 src_ptr = ARG1;
+    const u32 n_samples = ARG2;
+    const float volume = ARG3;
+    log("cellAudioAddData(port_num: %d, src_ptr: 0x%08x, n_samples: %d, volume: %f)\n", port_num, src_ptr, n_samples, volume);
+    const std::scoped_lock<std::mutex> lock(audio_mutex);
+    
+    const size_t block_size = 256 * ports[port_num].n_channels * sizeof(float);
+    float* src = (float*)ps3->mem.getPtr(src_ptr);
+    float* dst = (float*)ps3->mem.getPtr(ports[port_num].addr + ports[port_num].idx * block_size);
+    for (int i = 0; i < n_samples * ports[port_num].n_channels; i++)
+        *dst++ = *src++;
+    
+    return CELL_OK;
+}
+
 u64 CellAudio::cellAudioPortStart() {
-    u32 port_num = ARG0;
+    const u32 port_num = ARG0;
     log("cellAudioPortStart(port_num: %d)\n", port_num);
     const std::scoped_lock<std::mutex> lock(audio_mutex);
     

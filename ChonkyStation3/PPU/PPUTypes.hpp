@@ -292,7 +292,7 @@ enum G_04Opcodes {
     VADDCUW         = 0x180,
     VMAXSW          = 0x182,
     VSLW            = 0x184,    // Vector Shift Left Integer Word
-    VEXPTEFP        = 0x18a,
+    VEXPTEFP        = 0x18a,    // Vector 2 Raised to the Exponent Estimate Floating-Point
     VMRGLW          = 0x18c,    // Vector Merge Low Word
     VPKSHSS         = 0x18e,
     VSL             = 0x1c4,
@@ -303,7 +303,7 @@ enum G_04Opcodes {
     VADDUBS         = 0x200,
     VMINUB          = 0x202,
     VSRB            = 0x204,
-    VCMPGTUB        = 0x206,
+    VCMPGTUB        = 0x206,    // Vector Compare Greater-Than Unsigned Byte
     VCMPGTUB_       = 0x606,
     VMULEUB         = 0x208,
     VRFIN           = 0x20a,
@@ -380,10 +380,10 @@ enum G_04Opcodes {
     VSUBCUW         = 0x580,
     VAVGSW          = 0x582,
     VSUBUBS         = 0x600,
-    MFVSCR          = 0x604,
+    MFVSCR          = 0x604,    // Move from Vector Status and Control Register
     VSUM4UBS        = 0x608,
     VSUBUHS         = 0x640,
-    MTVSCR          = 0x644,
+    MTVSCR          = 0x644,    // Move to Vector Status and Control Register
     VSUM4SHS        = 0x648,
     VSUBUWS         = 0x680,
     VSUM2SWS        = 0x688,

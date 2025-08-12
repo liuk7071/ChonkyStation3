@@ -24,6 +24,7 @@ public:
     PPUTypes::State state;
 
     bool should_log = false;    // For debugging, unused normally
+    bool should_break = false;  // Used by PPU Interpreter only, need to put this here because it's used to single step
 
     void printState();
     bool doesAnyRegContain(u64 val);

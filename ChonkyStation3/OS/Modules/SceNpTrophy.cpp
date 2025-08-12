@@ -18,6 +18,33 @@ u64 SceNpTrophy::sceNpTrophyRegisterContext() {
     ps3->ppu->state.gprs[6] = 0;
     ps3->ppu->state.gprs[7] = arg;
     //ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
+    
+    for (int i = 0; i <= 3; i++) {
+        ps3->ppu->state.gprs[3] = ctx;
+        ps3->ppu->state.gprs[4] = 5;    // Setup
+        ps3->ppu->state.gprs[5] = i;
+        ps3->ppu->state.gprs[6] = 3;
+        ps3->ppu->state.gprs[7] = arg;
+        //ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
+    }
+
+    for (int i = 0; i < 32; i++) {
+        ps3->ppu->state.gprs[3] = ctx;
+        ps3->ppu->state.gprs[4] = 6;    // Progress
+        ps3->ppu->state.gprs[5] = i;
+        ps3->ppu->state.gprs[6] = 31;
+        ps3->ppu->state.gprs[7] = arg;
+        //ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
+    }
+    
+    for (int i = 0; i < 6; i++) {
+        ps3->ppu->state.gprs[3] = ctx;
+        ps3->ppu->state.gprs[4] = 7;    // Finalize
+        ps3->ppu->state.gprs[5] = i;
+        ps3->ppu->state.gprs[6] = 5;
+        ps3->ppu->state.gprs[7] = arg;
+        //ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
+    }
 
     ps3->ppu->state.gprs[3] = ctx;
     ps3->ppu->state.gprs[4] = 8;    // Complete
@@ -25,8 +52,8 @@ u64 SceNpTrophy::sceNpTrophyRegisterContext() {
     ps3->ppu->state.gprs[6] = 0;
     ps3->ppu->state.gprs[7] = arg;
     //ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
-    
     ps3->ppu->state = old_state;
+
     return CELL_OK;
 }
 
@@ -46,7 +73,7 @@ u64 SceNpTrophy::sceNpTrophyGetRequiredDiskSpace() {
     const u64 options = ARG3;
     log("sceNpTrophyGetRequiredDiskSpace(ctx: 0x%08x, handle: 0x%08x, req_space_ptr: 0x%08x, options: 0x%08x) STUBBED\n");
 
-    ps3->mem.write<u32>(req_space_ptr, 1_KB);
+    ps3->mem.write<u32>(req_space_ptr, 0_KB);
 
     return CELL_OK;
 }
@@ -68,7 +95,8 @@ u64 SceNpTrophy::sceNpTrophyGetTrophyUnlockState() {
     const u32 count_ptr = ARG3;
     log("sceNpTrophyGetTrophyUnlockState(ctx: 0x%08x, handle: 0x%08x, flags_ptr: 0x%08x, count_ptr: 0x%08x) STUBBED\n");
 
-    ps3->mem.write<u32>(count_ptr, 0);
+    ps3->mem.write<u32>(count_ptr, 32);
+    ps3->mem.write<u8>(flags_ptr, 0x80);
 
     return CELL_OK;
 }

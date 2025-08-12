@@ -275,6 +275,7 @@ void ModuleManager::init() {
         { 0xc7bdb7eb, { "cellRtcGetTick",                                   std::bind(&ModuleManager::stub, this) } },
         { 0xcb90c761, { "cellRtcGetTime_t",                                 std::bind(&CellRtc::cellRtcGetTime_t, &cellRtc) }},
 
+        { 0x0d5b4a14, { "cellFsReadWithOffset",                             std::bind(&CellFs::cellFsReadWithOffset, &cellFs) }},
         { 0x2cb51f0d, { "cellFsClose",                                      std::bind(&CellFs::cellFsClose, &cellFs) }},
         { 0x3f61245c, { "cellFsOpendir",                                    std::bind(&CellFs::cellFsOpendir, &cellFs) }},
         { 0x4d5ff8e2, { "cellFsRead",                                       std::bind(&CellFs::cellFsRead, &cellFs) }},
@@ -297,7 +298,7 @@ void ModuleManager::init() {
         { 0x74a66af0, { "cellAudioGetPortConfig",                           std::bind(&CellAudio::cellAudioGetPortConfig, &cellAudio) }},
         { 0x56dfe179, { "cellAudioSetPortLevel",                            std::bind(&ModuleManager::stub, this) } },
         { 0xca5ac370, { "cellAudioQuit",                                    std::bind(&ModuleManager::stub, this) } },
-        { 0xdab029aa, { "cellAudioAddData",                                 std::bind(&ModuleManager::stub, this) } },
+        { 0xdab029aa, { "cellAudioAddData",                                 std::bind(&CellAudio::cellAudioAddData, &cellAudio) }},
         { 0xff3626fd, { "cellAudioRemoveNotifyEventQueue",                  std::bind(&ModuleManager::stub, this) } },
         
         { 0x4129fe2d, { "cellAudioPortClose",                               std::bind(&CellAudio::cellAudioPortClose, &cellAudio) }},
@@ -409,6 +410,7 @@ void ModuleManager::init() {
 
         { 0x1197b52c, { "sceNpTrophyRegisterContext",                       std::bind(&SceNpTrophy::sceNpTrophyRegisterContext, &sceNpTrophy) } },
         { 0x1c25470d, { "sceNpTrophyCreateHandle",                          std::bind(&SceNpTrophy::sceNpTrophyCreateHandle, &sceNpTrophy) } },
+        { 0x27deda93, { "sceNpTrophySetSoundLevel",                         std::bind(&ModuleManager::stub, this) } },
         { 0x370136fe, { "sceNpTrophyGetRequiredDiskSpace",                  std::bind(&SceNpTrophy::sceNpTrophyGetRequiredDiskSpace, &sceNpTrophy) } },
         { 0x39567781, { "sceNpTrophyInit",                                  std::bind(&ModuleManager::stub, this) } },
         { 0x49d18217, { "sceNpTrophyGetGameInfo",                           std::bind(&SceNpTrophy::sceNpTrophyGetGameInfo, &sceNpTrophy) } },

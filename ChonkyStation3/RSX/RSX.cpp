@@ -160,6 +160,9 @@ void RSX::setupVAO() {
         case 2:
             vao.setAttributeFloat<float>(binding.index, binding.size, binding.stride, (void*)offs_in_buf, false);
             break;
+        case 3:
+            vao.setAttributeFloat<float /* ignored */, true>(binding.index, binding.size, binding.stride, (void*)offs_in_buf, false);
+            break;
         case 4:
             vao.setAttributeFloat<GLubyte>(binding.index, binding.size, binding.stride, (void*)offs_in_buf, true);
             break;
@@ -220,6 +223,7 @@ void RSX::getVertices(u32 n_vertices, std::vector<u8>& vtx_buf, u32 start) {
                     break;
                 }
                 case 1:
+                case 3: // Half float
                 case 5: {
                     u16 x = fetch.template operator()<u16, is_inline_array>(offs_in_buf + i * binding.stride + j * size, base);
                     *(u16*)&vtx_buf[vtx_buf_offs + offs_in_buf + binding.stride * i + j * size] = x;
@@ -591,10 +595,23 @@ GLuint RSX::getBlendFactor(u16 fact) {
     }
 }
 
-void RSX::runCommandList(u64 put_addr) {
+void RSX::putWritten(u64 unused) {
+    //ps3->scheduler.push(std::bind(&RSX::runCommandList, this), 2500);
+    runCommandList();
+    
+}
+
+void RSX::runCommandList() {
     log("Executing commands\n");
     log("get: 0x%08x, put: 0x%08x\n", (u32)gcm.ctrl->get, (u32)gcm.ctrl->put);
 
+    /*
+    if (hanged)
+        gcm.ctrl->get = gcm.ctrl->get + 4;
+    if (gcm.ctrl->get == gcm.ctrl->put)
+        gcm.ctrl->get = gcm.ctrl->get - 4;
+  */
+    
     // Used to detect hangs
     hanged = false;
     u32 last_jump_addr = 0;
@@ -715,7 +732,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
     case NV406E_SEMAPHORE_ACQUIRE: {
         const auto sema = ps3->mem.read<u32>(gcm.label_addr + semaphore_offset);
         if (sema != args[0]) {
-            Helpers::panic("Could not acquire semaphore\n");
+            //Helpers::panic("Could not acquire semaphore\n");
         }
         args.pop_front();
         break;
@@ -1004,6 +1021,9 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
                             break;
                         case 2:
                             vao.setAttributeFloat<float>(binding.index, binding.size, binding.stride, (void*)old_size, false);
+                            break;
+                        case 3:
+                            vao.setAttributeFloat<float /* ignored */, true>(binding.index, binding.size, binding.stride, (void*)old_size, false);
                             break;
                         case 4:
                             vao.setAttributeFloat<GLubyte>(binding.index, binding.size, binding.stride, (void*)old_size, true);

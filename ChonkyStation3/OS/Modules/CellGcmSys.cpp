@@ -80,7 +80,7 @@ u64 CellGcmSys::cellGcmInitBody() {
     reports_addr = buffer_info_addr + sizeof(CellGcmDisplayInfo) * 8;
 
     // Memory watchpoint to tell the RSX to check if there are commands to run when put is written
-    ps3->mem.watchpoints_w[ctrl_addr] = std::bind(&RSX::runCommandList, &ps3->rsx, std::placeholders::_1);
+    ps3->mem.watchpoints_w[ctrl_addr] = std::bind(&RSX::putWritten, &ps3->rsx, std::placeholders::_1);
     ps3->mem.markAsSlowMem(ctrl_addr >> PAGE_SHIFT, false, true);   // Only need to make writes take the slow path
 
     label_addr = dma_ctrl_addr + 2_MB;
@@ -111,9 +111,11 @@ u64 CellGcmSys::cellGcmInitBody() {
     thread->state.pc = vblank_thread_entry;
 
     // cellGcm writes some commands on init
-    //ctx->current = ctx->begin + 0x3a0;
-    //ctrl->get = 0x13a0;
-    //ctrl->put = ctrl->get;
+    ctx->current = ctx->begin + 0x3a0;
+    ctrl->get = 0x13a0;
+    ctrl->put = 0x13a0;
+    
+    log("Control register addr: 0x%08x\n", ctrl_addr);
     
     return CELL_OK;
 }
@@ -204,10 +206,10 @@ u64 CellGcmSys::_cellGcmSetFlipCommand() {
     context->current = context->current + 8;
     
     // Call queue handler
-    if (queue_handler) {
-        ps3->ppu->state.gprs[3] = 1; // Handler function is always called with 1 as first argument
-        ps3->ppu->runFunc(ps3->mem.read<u32>(queue_handler), ps3->mem.read<u32>(queue_handler + 4));
-    }
+    //if (queue_handler) {
+    //    ps3->ppu->state.gprs[3] = 1; // Handler function is always called with 1 as first argument
+    //    ps3->ppu->runFunc(ps3->mem.read<u32>(queue_handler), ps3->mem.read<u32>(queue_handler + 4));
+    //}
 
     return CELL_OK;
 }

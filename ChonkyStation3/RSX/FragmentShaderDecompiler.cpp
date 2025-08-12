@@ -47,6 +47,10 @@ uniform bool flip_tex;
         if (opc == RSXFragment::NOP) continue;
         if (opc == RSXFragment::FENCT) continue;
         if (opc == RSXFragment::FENCB) continue;
+        if (opc == RSXFragment::IFE) {
+            main += "// IFE";
+            continue;
+        }
 
         int num_lanes;
         const auto mask_str = mask(instr, num_lanes);
@@ -132,8 +136,14 @@ uniform bool flip_tex;
             }
             break;
         }
+                
+        case RSXFragment::RCP: {
+            decompiled_src = std::format("(1.0f / {}).xxxx", source(instr, 0));
+            break;
+        }
+                
         case RSXFragment::RSQ: {
-            decompiled_src = std::format("inversesqrt({})", source(instr, 0));
+            decompiled_src = std::format("inversesqrt({}).xxxx", source(instr, 0));
             break;
         }
         case RSXFragment::EX2: {

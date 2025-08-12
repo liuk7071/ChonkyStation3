@@ -40,6 +40,29 @@ u32 CellFs::fsReadDir(int fd, CellFsDirent* dirent) {
     return bytes_read;
 }
 
+u64 CellFs::cellFsReadWithOffset() {
+    const u32 file_id = ARG0;
+    const u64 offs = ARG1;
+    const u32 buf = ARG2;
+    const u64 size = ARG3;
+    const u32 bytes_read_ptr = ARG4;    // bytes_read is u64
+    log("cellFsReadWithOffset(file_id: %d, offs: %lld, buf: 0x%08x, size: %lld, bytes_read_ptr: 0x%08x)\n", file_id, offs, buf, size, bytes_read_ptr);
+
+    // Save old seek position
+    const auto old_pos = ps3->fs.tell(file_id);
+    // Seek to new position
+    ps3->fs.seek(file_id, offs, SEEK_SET);
+    // Read
+    const u64 bytes_read = ps3->fs.read(file_id, ps3->mem.getPtr(buf), size);
+    if (bytes_read_ptr)
+        ps3->mem.write<u64>(bytes_read_ptr, bytes_read);
+    // Restore old position
+    ps3->fs.seek(file_id, old_pos, SEEK_SET);
+
+    return CELL_OK;
+}
+
+
 u64 CellFs::cellFsClose() {
     const u32 file_id = ARG0;
     log("cellFsClose(file_id: %d)\n", file_id);

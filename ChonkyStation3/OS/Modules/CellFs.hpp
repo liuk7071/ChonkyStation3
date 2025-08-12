@@ -73,6 +73,7 @@ public:
 
     u32 fsReadDir(int fd, CellFsDirent* dirent);
     
+    u64 cellFsReadWithOffset();
     u64 cellFsClose();
     u64 cellFsOpendir();
     u64 cellFsRead();

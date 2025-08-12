@@ -152,7 +152,7 @@ void SPUThread::wakeUpIfEvent() {
 }
 
 bool SPUThread::hasPendingEvents() {
-    return event_stat.raw & event_mask;
+    return event_stat.raw & event_mask.raw;
 }
 
 std::string SPUThread::channelToString(u32 ch) {
@@ -205,7 +205,7 @@ u32 SPUThread::readChannel(u32 ch) {
             return 0;
         }
 
-        return event_stat.raw & event_mask;
+        return event_stat.raw & event_mask.raw;
     }
     case SPU_RdDec: {
         // TODO: This is a bad stub
@@ -257,7 +257,7 @@ void SPUThread::writeChannel(u32 ch, u32 val) {
 
     switch (ch) {
      
-    case SPU_WrEventMask:   event_mask      = val;      break;
+    case SPU_WrEventMask:   event_mask.raw  = val;      break;
     case SPU_WrEventAck:    event_stat.raw &= ~val;     break;
     case SPU_WrDec:         decrementer = val;          break;
     case SPU_WrOutMbox: {

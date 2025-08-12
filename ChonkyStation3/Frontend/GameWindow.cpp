@@ -183,6 +183,7 @@ void GameWindow::pause(bool handle_pc) {
         }
         
         // Step the emulator
+        ps3->ppu->should_break = true;
         ps3->step();
         // Set the "step completed flag". The Qt thread waits on this to know when the step is done, and clears it afterwards
         stepped = true;
@@ -197,7 +198,8 @@ void GameWindow::breakpoint() {
 }
 
 void GameWindow::breakOnNextInstr(u64 addr) {
-    ps3->scheduler.push(std::bind(&GameWindow::breakpoint, this), ps3->curr_block_cycles, "breakpoint");
+    ps3->scheduler.push(std::bind(&GameWindow::breakpoint, this), 0, "breakpoint");
+    ps3->ppu->should_break = true;
 }
 
 void GameWindow::breakOnNextInstrIfExec(u64 addr) {

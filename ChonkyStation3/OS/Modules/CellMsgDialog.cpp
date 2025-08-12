@@ -17,8 +17,8 @@ u64 CellMsgDialog::cellMsgDialogOpen2() {
     printf("%s\n", msg.c_str());
     
     if ((type & 1) == 0) {  // Error
-        //Helpers::panic("Error\n");
-        printf("WARNING: Error message dialog\n");
+        Helpers::panic("Error\n");
+        //printf("WARNING: Error message dialog\n");
     }
 
     return CELL_OK;

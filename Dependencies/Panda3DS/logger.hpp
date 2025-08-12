@@ -73,7 +73,7 @@ static Logger sysThread             = Logger<true> ("[Module ][sysThread     ] "
 static Logger sys_spu               = Logger<true> ("[Syscall][sys_spu       ] ");
 static Logger sys_semaphore         = Logger<false>("[Syscall][sys_semaphore ] ");
 static Logger sys_ppu_thread        = Logger<true> ("[Syscall][sys_ppu_thread] ");
-static Logger sys_event_flag        = Logger<false>("[Syscall][sys_event_flag] ");
+static Logger sys_event_flag        = Logger<true> ("[Syscall][sys_event_flag] ");
 static Logger sys_prx               = Logger<true> ("[Syscall][sys_prx       ] ");
 static Logger sys_cond              = Logger<true> ("[Syscall][sys_cond      ] ");
 static Logger sys_rwlock            = Logger<true> ("[Syscall][sys_rwlock    ] ");
@@ -84,11 +84,11 @@ static Logger sys_memory            = Logger<true> ("[Syscall][sys_memory    ] "
 static Logger sys_mmapper           = Logger<true> ("[Syscall][sys_mmapper   ] ");
 static Logger sys_timer             = Logger<false>("[Syscall][sys_timer     ] ");
 static Logger sys_fs                = Logger<true> ("[Syscall][sys_fs        ] ");
-static Logger misc_sc               = Logger<true> ("[Syscall][Misc          ] ");
+static Logger misc_sc               = Logger<false>("[Syscall][Misc          ] ");
 static Logger tty                   = Logger<1>    ();
 
 // RSX
-static Logger rsx                   = Logger<false>("[RSX    ][Command       ] ");
+static Logger rsx                   = Logger<1> ("[RSX    ][Command       ] ");
 static Logger rsx_capture_replayer  = Logger<true> ("[RSX    ][Capture Replay] ");
 static Logger vertex_shader         = Logger<false>("[Shader ][Vertex        ] ");
 static Logger fragment_shader       = Logger<false>("[Shader ][Fragment      ] ");
@@ -105,7 +105,7 @@ static Logger loader_game           = Logger<1>    ("[Loader ][Game          ] "
 static Logger manager_prx           = Logger<1>    ("[Manager][PRX           ] ");
 
 // Thread
-static Logger thread                = Logger<false>("[Thread ][PPU           ] ");
+static Logger thread                = Logger<0>("[Thread ][PPU           ] ");
 static Logger thread_spu            = Logger<0>("[Thread ][SPU           ] ");
 
 // Other
@@ -113,7 +113,7 @@ static Logger memory                = Logger<true> ("[Other  ][Memory        ] "
 static Logger lle_module            = Logger<true> ("[LLE    ][Module        ] ");
 static Logger filesystem            = Logger<true> ("[Other  ][Filesystem    ] ");
 static Logger lv2_obj               = Logger<true> ("[Other  ][Lv2 Object    ] ");
-static Logger unimplemented         = Logger<true> ("[Other  ][Unimplemented ] ");
+static Logger unimplemented         = Logger<1> ("[Other  ][Unimplemented ] ");
 
 #undef true
 #undef false

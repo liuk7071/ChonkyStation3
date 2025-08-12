@@ -116,7 +116,8 @@ public:
     void setEaTableAddr(u32 addr);
     u32 ioToEa(u32 offs);
 
-    void runCommandList(u64 put_addr = 0);
+    void putWritten(u64 unused);
+    void runCommandList();
     void doCmd(u32 cmd_num, std::deque<u32>& args);
     u32 fetch32();
     u32 offsetAndLocationToAddress(u32 offset, u8 location);
@@ -252,6 +253,7 @@ public:
             case 7:
             case 4: size = sizeof(u8);      break;
             case 1:
+            case 3:
             case 5: size = sizeof(s16);     break;
             default:
                 Helpers::panic("Tried to get size of unimplemented vertex type %d\n", type);

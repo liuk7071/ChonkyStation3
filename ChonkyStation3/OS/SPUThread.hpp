@@ -171,7 +171,24 @@ public:
         BitField<11, 1, u32> a;
         BitField<12, 1, u32> ms;
     } event_stat;
-    u32 event_mask = 0;
+    
+    union {
+        u32 raw = 0;
+
+        BitField<0,  1, u32> tg;
+        BitField<1,  1, u32> sn;
+        BitField<2,  1, u32> reserved;
+        BitField<3,  1, u32> qv;
+        BitField<4,  1, u32> mb;
+        BitField<5,  1, u32> tm;
+        BitField<6,  1, u32> me;
+        BitField<7,  1, u32> le;
+        BitField<8,  1, u32> s2;
+        BitField<9,  1, u32> s1;
+        BitField<10, 1, u32> lr;
+        BitField<11, 1, u32> a;
+        BitField<12, 1, u32> ms;
+    } event_mask;
     
     struct MFCListElement {
         BEField<u16> sb;    // Stall and notify bit
