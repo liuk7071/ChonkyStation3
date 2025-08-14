@@ -138,7 +138,9 @@ int PPUInterpreter::step() {
                             case MFVSCR:    mfvscr(instr);      break;
                             case MTVSCR:    mtvscr(instr);      break;
                             case VXOR:      vxor(instr);        break;
+                            case VSUM4SBS:  vsum4sbs(instr);    break;
                             case VSUBSHS:   vsubshs(instr);     break;
+                            case VSUMSWS:   vsumsws(instr);     break;
                                 
                             default:
                                 Helpers::panic("Unimplemented G_04 instruction 0x%02x (decimal: %d) (full instr: 0x%08x) @ 0x%016llx\n", (u32)instr.g_04_field, (u32)instr.g_04_field, instr.raw, state.pc);
@@ -1343,6 +1345,20 @@ void PPUInterpreter::vxor(const Instruction& instr) {
     state.vrs[instr.vd].dw[1] = state.vrs[instr.va].dw[1] ^ state.vrs[instr.vb].dw[1];
 }
 
+void PPUInterpreter::vsum4sbs(const Instruction& instr) {
+    for (int i = 0; i < 4; i++) {
+        const s64 sum   = (s8)state.vrs[instr.va].b[i * 4 + 0]
+                        + (s8)state.vrs[instr.va].b[i * 4 + 1]
+                        + (s8)state.vrs[instr.va].b[i * 4 + 2]
+                        + (s8)state.vrs[instr.va].b[i * 4 + 3];
+        s64 res = sum + (s64)(s32)state.vrs[instr.vb].w[i];
+        if (res > INT32_MAX)        res = INT32_MAX;
+        else if (res < INT32_MIN)   res = INT32_MIN;
+        state.vrs[instr.vd].w[i] = (s32)res;
+        // TODO: SAT
+    }
+}
+
 void PPUInterpreter::vsubshs(const Instruction& instr) {
     for (int i = 0; i < 8; i++) {
         s32 res = (s32)(s16)state.vrs[instr.va].h[i] - (s32)(s16)state.vrs[instr.vb].h[i];
@@ -1350,6 +1366,20 @@ void PPUInterpreter::vsubshs(const Instruction& instr) {
         else if (res < -0x8000) res = -0x8000;
         state.vrs[instr.vd].h[i] = res;
     }
+    // TODO: SAT
+}
+
+void PPUInterpreter::vsumsws(const Instruction& instr) {
+    s64 res     = (s32)state.vrs[instr.va].w[0]
+                + (s32)state.vrs[instr.va].w[1]
+                + (s32)state.vrs[instr.va].w[2]
+                + (s32)state.vrs[instr.va].w[3]
+                + (s32)state.vrs[instr.vb].w[0];
+    if (res > INT32_MAX)        res = INT32_MAX;
+    else if (res < INT32_MIN)   res = INT32_MIN;
+    state.vrs[instr.vd].w[0] = (s32)res;
+    state.vrs[instr.vd].w[1] = 0;
+    state.vrs[instr.vd].dw[1] = 0;
     // TODO: SAT
 }
 
@@ -2266,8 +2296,8 @@ void PPUInterpreter::frsp(const Instruction& instr) {
 void PPUInterpreter::fctiwz(const Instruction& instr) {
     Helpers::debugAssert(!instr.rc, "fctiwz: rc\n");
     s64 v = (s64)state.fprs[instr.frb];
-    if (v > INT32_MAX) v = 0x7fffffff;
-    else if (v < INT32_MIN) v = 0x80000000;
+    if (v > INT32_MAX) v = INT32_MAX;
+    else if (v < INT32_MIN) v = INT32_MIN;
     reinterpret_cast<u64&>(state.fprs[instr.frt]) = 0xfff8000000000000ull | v;
 }
 

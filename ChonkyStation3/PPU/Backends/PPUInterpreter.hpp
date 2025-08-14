@@ -149,7 +149,9 @@ public:
     void mfvscr     (const Instruction& instr);
     void mtvscr     (const Instruction& instr);
     void vxor       (const Instruction& instr);
+    void vsum4sbs   (const Instruction& instr);
     void vsubshs    (const Instruction& instr);
+    void vsumsws    (const Instruction& instr);
     // G_13
     void mcrf       (const Instruction& instr);
     void bclr       (const Instruction& instr);

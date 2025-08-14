@@ -388,10 +388,10 @@ enum G_04Opcodes {
     VSUBUWS         = 0x680,
     VSUM2SWS        = 0x688,
     VSUBSBS         = 0x700,
-    VSUM4SBS        = 0x708,
+    VSUM4SBS        = 0x708,    // Vector Sum Across Partial (1/4) Signed Byte Saturate
     VSUBSHS         = 0x740,    // Vector Subtract Signed Half Word Saturate
     VSUBSWS         = 0x780,
-    VSUMSWS         = 0x788,
+    VSUMSWS         = 0x788,    // Vector Sum Across Signed Word Saturate
 };
 
 enum G_13Opcodes {      // Field 21 - 30 
