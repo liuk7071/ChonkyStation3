@@ -13,7 +13,7 @@ void Lv2Semaphore::post(u32 val) {
         wait_list.pop_front();
         // Decrement semaphore
         this->val--;
-        // Delete timeout events
+        // Cancel timeout events
         ps3->scheduler.deleteAllEventsOfName(std::format("timeout {:d}", t->id));
     }
 }

@@ -26,7 +26,7 @@ u64 Syscall::sys_event_queue_receive() {
     log_sys_event("sys_event_queue_receive(queue_id: %d, event_ptr: 0x%08x, timeout: %d)\n", queue_id, event_ptr, timeout );
 
     Lv2EventQueue* queue = ps3->lv2_obj.get<Lv2EventQueue>(queue_id);
-    queue->receive();    // queue->receive will return the event data in gprs[4] - gprs[7]
+    queue->receive(timeout);    // queue->receive will return the event data in gprs[4] - gprs[7]
 
     return CELL_OK;
 }

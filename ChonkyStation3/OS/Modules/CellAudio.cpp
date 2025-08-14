@@ -6,6 +6,11 @@
 void CellAudio::audioThread() {
     while (true) {
         if (end_audio_thread) break;
+        if (ps3->settings.debug.dont_step_cellaudio_port_read_idx) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            continue;
+        }
+        
         audio_mutex.lock();
         
         int sampled = 0;
@@ -29,11 +34,9 @@ void CellAudio::audioThread() {
             sampled++;
             
             // Increment read idx
-            if (!ps3->settings.debug.dont_step_cellaudio_port_read_idx) {
-                ports[i].idx++;
-                ports[i].idx %= ports[i].n_blocks;
-                ps3->mem.write<u64>(read_positions_addr + i * sizeof(u64), ports[i].idx);
-            }
+            ports[i].idx++;
+            ports[i].idx %= ports[i].n_blocks;
+            ps3->mem.write<u64>(read_positions_addr + i * sizeof(u64), ports[i].idx);
             
             // Send aftermix event
             if (equeue_id) {

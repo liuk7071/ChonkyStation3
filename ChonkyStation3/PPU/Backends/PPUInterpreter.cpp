@@ -966,10 +966,10 @@ void PPUInterpreter::vslw(const Instruction& instr) {
 }
 
 void PPUInterpreter::vexptefp(const Instruction& instr) {
-    state.vrs[instr.vd].f[0] = std::powf(2.0f, state.vrs[instr.vb].f[0]);
-    state.vrs[instr.vd].f[1] = std::powf(2.0f, state.vrs[instr.vb].f[1]);
-    state.vrs[instr.vd].f[2] = std::powf(2.0f, state.vrs[instr.vb].f[2]);
-    state.vrs[instr.vd].f[3] = std::powf(2.0f, state.vrs[instr.vb].f[3]);
+    state.vrs[instr.vd].f[0] = std::pow(2.0f, state.vrs[instr.vb].f[0]);
+    state.vrs[instr.vd].f[1] = std::pow(2.0f, state.vrs[instr.vb].f[1]);
+    state.vrs[instr.vd].f[2] = std::pow(2.0f, state.vrs[instr.vb].f[2]);
+    state.vrs[instr.vd].f[3] = std::pow(2.0f, state.vrs[instr.vb].f[3]);
 }
 
 void PPUInterpreter::vmrglw(const Instruction& instr) {

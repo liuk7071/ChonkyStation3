@@ -88,7 +88,7 @@ static Logger misc_sc               = Logger<false>("[Syscall][Misc          ] "
 static Logger tty                   = Logger<1>    ();
 
 // RSX
-static Logger rsx                   = Logger<1> ("[RSX    ][Command       ] ");
+static Logger rsx                   = Logger<false>("[RSX    ][Command       ] ");
 static Logger rsx_capture_replayer  = Logger<true> ("[RSX    ][Capture Replay] ");
 static Logger vertex_shader         = Logger<false>("[Shader ][Vertex        ] ");
 static Logger fragment_shader       = Logger<false>("[Shader ][Fragment      ] ");
@@ -113,7 +113,7 @@ static Logger memory                = Logger<true> ("[Other  ][Memory        ] "
 static Logger lle_module            = Logger<true> ("[LLE    ][Module        ] ");
 static Logger filesystem            = Logger<true> ("[Other  ][Filesystem    ] ");
 static Logger lv2_obj               = Logger<true> ("[Other  ][Lv2 Object    ] ");
-static Logger unimplemented         = Logger<1> ("[Other  ][Unimplemented ] ");
+static Logger unimplemented         = Logger<true> ("[Other  ][Unimplemented ] ");
 
 #undef true
 #undef false

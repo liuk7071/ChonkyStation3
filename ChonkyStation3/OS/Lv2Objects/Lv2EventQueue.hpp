@@ -30,8 +30,9 @@ public:
     u32 size = 0;
     std::queue<u64> wait_list;
     std::queue<Event> events;
-
-    void receive();
+    bool is_connected_to_spu_event_port = false;    // For debugging
+    
+    void receive(u64 timeout);
     s32  tryreceive(u32 event_array_ptr, s32 size);
     void send(Event event);
     void drain();

@@ -2,6 +2,7 @@
 #include "PlayStation3.hpp"
 #include <SPU/SPULoader.hpp>
 #include <Lv2Objects/Lv2SPUThreadGroup.hpp>
+#include <Lv2Objects/Lv2EventQueue.hpp>
 #include "sys_spu.hpp"
 
 
@@ -194,6 +195,7 @@ u64 Syscall::sys_spu_thread_connect_event() {
 
     if (thread->ports[spup] != -1) Helpers::panic("sys_spu_thread_connect_event: port was already connected\n");
     thread->ports[spup] = equeue_id;
+    ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->is_connected_to_spu_event_port = true;
     return CELL_OK;
 }
 
@@ -229,6 +231,8 @@ u64 Syscall::sys_spu_thread_group_connect_event_all_threads() {
     for (auto& thread : group->threads) {
         ps3->spu_thread_manager.getThreadByID(thread)->ports[spup] = equeue_id;
     }
+    
+    ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->is_connected_to_spu_event_port = true;
     
     ps3->mem.write<u8>(spup_ptr, spup);
     return CELL_OK;

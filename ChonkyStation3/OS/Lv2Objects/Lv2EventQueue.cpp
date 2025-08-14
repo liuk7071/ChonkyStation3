@@ -2,7 +2,7 @@
 #include "PlayStation3.hpp"
 
 
-void Lv2EventQueue::receive() {
+void Lv2EventQueue::receive(u64 timeout) {
     Thread* curr_thread = ps3->thread_manager.getCurrentThread();
     if (!events.empty()) {
         const auto& event = events.front();
@@ -14,7 +14,8 @@ void Lv2EventQueue::receive() {
     }
     else {
         // Wait for an event
-        curr_thread->wait(std::format("equeue {:d}", handle()));
+        curr_thread->wait(std::format("equeue {:d} {:s}", handle(), is_connected_to_spu_event_port ? "(connected to a SPU thread)" : ""));
+        if (timeout) curr_thread->timeout(timeout);
         wait_list.push(curr_thread->id);
     }
 }
@@ -60,6 +61,9 @@ void Lv2EventQueue::send(Event event) {
             ps3->ppu->state.gprs[6] = event.data2;
             ps3->ppu->state.gprs[7] = event.data3;
             ps3->thread_manager.contextSwitch(*ps3->thread_manager.getThreadByID(curr_thread));
+            
+            // Cancel timeout events
+            ps3->scheduler.deleteAllEventsOfName(std::format("timeout {:d}", t->id));
         }
     }
 }

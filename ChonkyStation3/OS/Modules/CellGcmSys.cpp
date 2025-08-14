@@ -210,7 +210,7 @@ u64 CellGcmSys::_cellGcmSetFlipCommand() {
     //    ps3->ppu->state.gprs[3] = 1; // Handler function is always called with 1 as first argument
     //    ps3->ppu->runFunc(ps3->mem.read<u32>(queue_handler), ps3->mem.read<u32>(queue_handler + 4));
     //}
-
+    
     return CELL_OK;
 }
 

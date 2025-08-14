@@ -27,7 +27,7 @@ public:
     ThreadDebuggerWidget* thread_debugger;
     PPUDebuggerWidget* ppu_debugger;
     AboutWindow* about_window;
-
+    
     void setListItem(int row, int column, std::string str);
     void setListIcon(int row, fs::path icon);
     void enableWidgets();
