@@ -16,6 +16,7 @@
 #include <ELF/ELFLoader.hpp>
 #include <SFO/SFOLoader.hpp>
 #include <Game/GameLoader.hpp>
+#include <PKG/PKGInstaller.hpp>
 #include <ElfSymbolParser.hpp>
 #include <ModuleManager.hpp>
 #include <ThreadManager.hpp>

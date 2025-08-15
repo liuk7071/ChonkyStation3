@@ -8,6 +8,14 @@ void Settings::load() {
 
     if (!fs::exists(path)) {
         printf("No configuration file found, creating a new one\n");
+        // For MacOS default the filesystem to SDL_GetPrefPath
+#ifdef __APPLE__
+        fs::path pref_path = SDL_GetPrefPath("ChonkyStation", "ChonkyStation3");
+        filesystem.dev_hdd0_mountpoint = (pref_path / "Filesystem/dev_hdd0").generic_string();
+        filesystem.dev_hdd1_mountpoint = (pref_path / "Filesystem/dev_hdd1").generic_string();
+        filesystem.dev_flash_mountpoint = (pref_path / "Filesystem/dev_flash").generic_string();
+        filesystem.dev_usb000_mountpoint = (pref_path / "Filesystem/dev_us000").generic_string();
+#endif
         save();
         return;
     }

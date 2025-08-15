@@ -16,3 +16,6 @@
 [submodule "Dependencies/miniaudio"]
 	path = Dependencies/miniaudio
 	url = https://github.com/mackron/miniaudio.git
+[submodule "Dependencies/tiny-AES-c"]
+	path = Dependencies/tiny-AES-c
+	url = https://github.com/kokke/tiny-AES-c.git

@@ -76,7 +76,11 @@ u64 Filesystem::read(u32 file_id, u8* buf, u64 size) {
 
 u64 Filesystem::seek(u32 file_id, s64 offs, u32 mode) {
     FILE* file = getFileFromID(file_id).file;
+#ifdef _WIN32
+    _fseeki64(file, offs, mode);
+#else
     std::fseek(file, offs, mode);
+#endif
     return std::ftell(file);
 }
 
