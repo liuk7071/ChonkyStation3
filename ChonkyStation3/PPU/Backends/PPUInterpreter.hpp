@@ -103,6 +103,7 @@ public:
     void vcmpequw   (const Instruction& instr);
     void vmrghw     (const Instruction& instr);
     void vcmpeqfp   (const Instruction& instr);
+    void vslb       (const Instruction& instr);
     void vrefp      (const Instruction& instr);
     void vpkshus    (const Instruction& instr);
     void vslh       (const Instruction& instr);
@@ -285,6 +286,7 @@ public:
     void fnmsub     (const Instruction& instr);
     void fnmadd     (const Instruction& instr);
     void fneg       (const Instruction& instr);
+    void fnabs      (const Instruction& instr);
     void fabs_      (const Instruction& instr);
     void fctid      (const Instruction& instr);
     void fctidz     (const Instruction& instr);

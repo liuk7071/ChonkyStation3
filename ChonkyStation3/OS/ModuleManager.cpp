@@ -527,9 +527,11 @@ void ModuleManager::init() {
         { 0x88f03575, { "setsockopt",                                       std::bind(&ModuleManager::stub, this) } },
         { 0x8af3825e, { "inet_pton",                                        std::bind(&ModuleManager::stub, this) } },
         { 0x9c056962, { "socket",                                           std::bind(&ModuleManager::stub, this) } },
+        { 0xa50777c6, { "shutdown",                                         std::bind(&ModuleManager::stub, this) } }, // This is libnet shutdown, not console shutdown
         { 0xb0a59804, { "bind",                                             std::bind(&ModuleManager::stub, this) } },
         { 0xc9157d30, { "_sys_net_h_errno_loc",                             std::bind(&ModuleManager::stub, this) } },
         { 0xdabbc2c0, { "inet_addr",                                        std::bind(&ModuleManager::stub, this) } },
+        { 0xfdb8f926, { "sys_net_free_thread_context",                      std::bind(&ModuleManager::stub, this) } },
 
         { 0x05893e7c, { "cellUserTraceRegister",                            std::bind(&ModuleManager::stub, this) } },
         

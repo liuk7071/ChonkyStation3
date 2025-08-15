@@ -278,7 +278,7 @@ enum G_04Opcodes {
     VCMPEQFP_       = 0x4c6,
     VPKUWUS         = 0xce,
     VMAXSB          = 0x102,
-    VSLB            = 0x104,
+    VSLB            = 0x104,    // Vector Shift Left Integer Byte
     VMULOSB         = 0x108,
     VREFP           = 0x10a,    // Vector Reciprocal Estimate Floating-Point
     VMRGLB          = 0x10c,

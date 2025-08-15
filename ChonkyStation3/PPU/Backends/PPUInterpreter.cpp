@@ -87,6 +87,7 @@ int PPUInterpreter::step() {
                             case VMRGHW:    vmrghw(instr);      break;
                             case VCMPEQFP_:
                             case VCMPEQFP:  vcmpeqfp(instr);    break;
+                            case VSLB:      vslb(instr);        break;
                             case VREFP:     vrefp(instr);       break;
                             case VPKSHUS:   vpkshus(instr);     break;
                             case VSLH:      vslh(instr);        break;
@@ -391,6 +392,7 @@ int PPUInterpreter::step() {
                             case FSQRT:     fsqrt(instr);   break;
                             case FMR:       fmr(instr);     break;
                             case FNEG:      fneg(instr);    break;
+                            case FNABS:     fnabs(instr);   break;
                             case FABS:      fabs_(instr);   break;
                             case FCTID:     fctid(instr);   break;
                             case FCTIDZ:    fctidz(instr);  break;
@@ -902,6 +904,11 @@ void PPUInterpreter::vcmpeqfp(const Instruction& instr) {
 
     if (instr.rc_v)
         state.cr.setCRField(6, all_equal | none_equal);
+}
+
+void PPUInterpreter::vslb(const Instruction& instr) {
+    for (int i = 0; i < 16; i++)
+        state.vrs[instr.vd].b[i] = state.vrs[instr.va].b[i] << (state.vrs[instr.vb].b[i] & 7);
 }
 
 void PPUInterpreter::vrefp(const Instruction& instr) {
@@ -2365,6 +2372,11 @@ void PPUInterpreter::fnmadd(const Instruction& instr) {
 void PPUInterpreter::fneg(const Instruction& instr) {
     Helpers::debugAssert(!instr.rc, "fneg: rc\n");
     state.fprs[instr.frt] = -state.fprs[instr.frb];
+}
+
+void PPUInterpreter::fnabs(const Instruction& instr) {
+    Helpers::debugAssert(!instr.rc, "fnabs: rc\n");
+    state.fprs[instr.frt] = -fabs(state.fprs[instr.frb]);
 }
 
 void PPUInterpreter::fabs_(const Instruction& instr) {

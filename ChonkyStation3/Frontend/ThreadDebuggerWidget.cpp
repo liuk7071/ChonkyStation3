@@ -36,20 +36,31 @@ void ThreadDebuggerWidget::update() {
     ui.ppuTable->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     ui.ppuTable->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
 
-    ui.ppuTable->setRowCount(ps3->thread_manager.threads.size());
+    // Get thread count
+    size_t thread_count = ps3->thread_manager.threads.size();
+    // Uncomment to ignore terminated threads
+    for (int i = 0; i < ppu_threads.size(); i++) {
+        if (ppu_threads[i].status == Thread::ThreadStatus::Terminated) thread_count--;
+    }
+    
+    ui.ppuTable->setRowCount(thread_count);
     ui.ppuTable->setColumnCount(5);
     for (int i = 0; i < ui.ppuTable->rowCount(); i++)
         ui.ppuTable->setRowHeight(i, 20);
     ui.ppuTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui.ppuTable->setHorizontalHeaderLabels(QStringList({ "Name", "Status", "ID", "pc", "Wait reason"}));
     
+    int row_idx = 0;
     for (int i = 0; i < ppu_threads.size(); i++) {
         auto& thread = ppu_threads[i];
-        setListItem(ui.ppuTable, i, 0, thread.name);
-        setListItem(ui.ppuTable, i, 1, Thread::threadStatusToString(thread.status));
-        setListItem(ui.ppuTable, i, 2, std::format("{:d}", thread.id));
-        setListItem(ui.ppuTable, i, 3, std::format("{:08x}", thread.state.pc));
-        setListItem(ui.ppuTable, i, 4, thread.wait_reason);
+        if (thread.status == Thread::ThreadStatus::Terminated) continue;
+        
+        setListItem(ui.ppuTable, row_idx, 0, thread.name);
+        setListItem(ui.ppuTable, row_idx, 1, Thread::threadStatusToString(thread.status));
+        setListItem(ui.ppuTable, row_idx, 2, std::format("{:d}", thread.id));
+        setListItem(ui.ppuTable, row_idx, 3, std::format("{:08x}", thread.state.pc));
+        setListItem(ui.ppuTable, row_idx, 4, thread.wait_reason);
+        row_idx++;
     }
     
     // ***** SPU *****
