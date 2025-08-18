@@ -35,7 +35,7 @@ private slots:
     void onGameLoaded();
 
 private:
-    PKGInstaller* pkg;
+    PKGInstaller* pkg = nullptr;
     std::function<void(int)> on_complete;
     bool done = false;
     double opacity = 0.0;
