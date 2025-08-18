@@ -6,10 +6,12 @@
 #include <thread>
 
 #include <Frontend/GameWindow.hpp>
+#include <Frontend/PKGInstallerOverlay.hpp>
 #include "Frontend/UI/ui_mainwindow.h"
 #include <QtWidgets>
 #include <PlayStation3.hpp>
 #include <Loaders/Game/GameLoader.hpp>
+#include <Loaders/PKG/PKGInstaller.hpp>
 
 #include "AboutWindow.hpp"
 #include "SettingsWidget.hpp"
@@ -28,6 +30,7 @@ public:
     PPUDebuggerWidget* ppu_debugger;
     AboutWindow* about_window;
     
+    void refreshGameList();
     void setListItem(int row, int column, std::string str);
     void setListIcon(int row, fs::path icon);
     void enableWidgets();
@@ -41,6 +44,7 @@ public:
     // Actions
     void launchDiscGame();
     void launchELF();
+    void installPackage();
     void replayRSXCapture();
     void loadAndLaunchGame(int idx);
     void updateBackgroundImage();
@@ -56,7 +60,7 @@ public:
     void gameThread();
     void pause();
     
-public slots:
+public slots:    
     // MacOS-only functions to manage the SDL window on the main thread
     void createGameWindow();
     void updateGameWindow();
@@ -64,6 +68,7 @@ public slots:
     void pollGameWindowInput();
 
 private:
+    PKGInstallerOverlay* pkg_ui;
     QTimer timer;
     
     // Overrides

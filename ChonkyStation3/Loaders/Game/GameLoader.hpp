@@ -24,6 +24,7 @@ public:
     };
     std::vector<InstalledGame> games;
 
+    void refresh();
     bool isDiscGameOK();
     InstalledGame getDiscGame();
 

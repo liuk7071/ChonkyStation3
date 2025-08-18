@@ -3,8 +3,13 @@
 
 
 GameLoader::GameLoader(PlayStation3* ps3) : ps3(ps3) {
+    refresh();
+}
+
+void GameLoader::refresh() {
     const auto game_dir = ps3->fs.guestPathToHost("/dev_hdd0/game");
     SFOLoader sfo_loader = SFOLoader(ps3->fs);
+    games.clear();
 
     // Register installed games
     for (auto& i : fs::directory_iterator(game_dir)) {

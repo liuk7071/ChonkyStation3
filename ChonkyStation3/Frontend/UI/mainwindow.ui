@@ -82,6 +82,8 @@
     </property>
     <addaction name="actionLaunch_Disc_Game"/>
     <addaction name="actionOpen_ELF"/>
+    <addaction name="separator"/>
+    <addaction name="actionInstall_Package"/>
    </widget>
    <widget class="QMenu" name="menuSettings">
     <property name="title">
@@ -187,6 +189,11 @@
   <action name="actionAbout_ChonkyStation3">
    <property name="text">
     <string>About ChonkyStation3</string>
+   </property>
+  </action>
+  <action name="actionInstall_Package">
+   <property name="text">
+    <string>Install Package (.pkg)</string>
    </property>
   </action>
  </widget>

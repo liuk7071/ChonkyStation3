@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 
+
 MainWindow::MainWindow() : QMainWindow() {
     ps3 = new PlayStation3();
     game_loader = new GameLoader(ps3);
@@ -15,6 +16,7 @@ MainWindow::MainWindow() : QMainWindow() {
     // Setup menubar buttons
     connect(ui.actionLaunch_Disc_Game, &QAction::triggered, this, &MainWindow::launchDiscGame);
     connect(ui.actionOpen_ELF, &QAction::triggered, this, &MainWindow::launchELF);
+    connect(ui.actionInstall_Package, &QAction::triggered, this, &MainWindow::installPackage);
     
     connect(ui.actionSystem, &QAction::triggered, this, [this]() {
         settings->ui.tabWidget->setCurrentIndex(0);
@@ -91,6 +93,42 @@ MainWindow::MainWindow() : QMainWindow() {
     int column = 0;
 
     // Setup the table widget
+    connect(ui.tableWidget, &QTableWidget::cellClicked, this, [this](int row, int column) {
+        curr_selection = row;
+        updateBackgroundImage();
+    });
+    
+    connect(ui.tableWidget, &QTableWidget::cellDoubleClicked, this, [this](int row, int column) {
+        curr_selection = row;
+        loadAndLaunchGame(row);
+    });
+
+    refreshGameList();
+
+    QPalette palette;
+    palette.setColor(QPalette::Highlight, QColor(0, 0, 0, 0));
+    setPalette(palette);
+
+    // Show a dialog if the config file was broken
+    if (ps3->settings.detected_broken_config) {
+        QMessageBox* dialog = new QMessageBox();
+        dialog->setText(tr("Detected outdated or broken config file, a new one was created.\n"));
+        dialog->exec();
+    }
+
+    resize(1280, 720);
+    
+    // Center window
+    move(screen()->geometry().center() - frameGeometry().center());
+    
+    setWindowTitle("ChonkyStation3");
+    show();
+}
+
+void MainWindow::refreshGameList() {
+    game_loader->refresh();
+    ui.tableWidget->clear();
+    
     ui.tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui.tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     ui.tableWidget->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
@@ -106,17 +144,7 @@ MainWindow::MainWindow() : QMainWindow() {
     ui.tableWidget->setColumnWidth(3, 100);
     ui.tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui.tableWidget->setHorizontalHeaderLabels(QStringList({ tr("Icon"), tr("Title"), "ID", tr("Version")}));
-
-    connect(ui.tableWidget, &QTableWidget::cellClicked, this, [this](int row, int column) {
-        curr_selection = row;
-        updateBackgroundImage();
-    });
     
-    connect(ui.tableWidget, &QTableWidget::cellDoubleClicked, this, [this](int row, int column) {
-        curr_selection = row;
-        loadAndLaunchGame(row);
-    });
-
     // Populate table
     for (int i = 0; i < game_loader->games.size(); i++) {
         setListIcon(i, ps3->fs.guestPathToHost(game_loader->games[i].content_path / "ICON0.PNG"));
@@ -127,21 +155,6 @@ MainWindow::MainWindow() : QMainWindow() {
         else
             setListItem(i, 3, tr("Unknown").toStdString());
     }
-
-    QPalette palette;
-    palette.setColor(QPalette::Highlight, QColor(0, 0, 0, 0));
-    setPalette(palette);
-
-    // Show a dialog if the config file was broken
-    if (ps3->settings.detected_broken_config) {
-        QMessageBox* dialog = new QMessageBox();
-        dialog->setText(tr("Detected outdated or broken config file, a new one was created.\n"));
-        dialog->exec();
-    }
-
-    resize(1280, 720);
-    setWindowTitle("ChonkyStation3");
-    show();
 }
 
 void MainWindow::setListItem(int row, int column, std::string str) {
@@ -230,6 +243,24 @@ void MainWindow::launchELF() {
     if (!path.empty()) {
         ps3->elf_path = path;
         launchGame();
+    }
+}
+
+void MainWindow::installPackage() {
+    const fs::path path = QFileDialog::getOpenFileName(this, "Select a PlayStation3 Package", "", "Package File (*.pkg)").toStdString();
+    if (!path.empty()) {
+        // Temporarily block window from resizing
+        setFixedSize(size());
+        
+        pkg_ui = new PKGInstallerOverlay(ps3, this);
+        pkg_ui->resize(size());
+        pkg_ui->raise();
+        pkg_ui->show();
+        pkg_ui->install(path, [&](int status) {
+            refreshGameList();
+            // Allow window to be resized again
+            setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        });
     }
 }
 
@@ -353,3 +384,5 @@ void MainWindow::resizeEvent(QResizeEvent* event) {
     QMainWindow::resizeEvent(event);
     updateBackgroundImage();
 }
+
+#include "MainWindow.moc"

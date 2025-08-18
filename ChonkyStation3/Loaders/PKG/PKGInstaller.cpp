@@ -8,13 +8,12 @@
 #define seek std::fseek
 #endif
 
-static AES_ctx ctx;
-
 void PKGInstaller::load(const fs::path& path) {
     const auto path_str = path.generic_string();
+    pkg_path = path;
     
     log("Loading PKG %s\n", path_str.c_str());
-    file = std::fopen(path_str.c_str(), "rb");
+    FILE* file = std::fopen(path_str.c_str(), "rb");
     if (!file) {
         Helpers::panic("Failed to open file %s\n", path_str.c_str());
     }
@@ -30,6 +29,7 @@ void PKGInstaller::load(const fs::path& path) {
     // Read the content ID
     std::memset(content_id, 0, 0x31);
     std::memcpy(content_id, header.content_id, 0x30);
+    size_in_bytes = header.total_size;
     
     log("Content ID: %s\n", content_id);
     log("PKG contains %d files\n", (u32)header.item_count);
@@ -62,14 +62,33 @@ void PKGInstaller::load(const fs::path& path) {
     seek(file, header.data_offset, SEEK_SET);
     std::fread(file_list, sizeof(PKGItemRecord) * header.item_count, 1, file);
 
-    log("AES IV: ");
-    for (int i = 0; i < 16; i++)
-        logNoPrefix("%02x", header.pkg_data_riv[i]);
-    logNoPrefix("\n");
+    //log("AES IV: ");
+    //for (int i = 0; i < 16; i++)
+    //    logNoPrefix("%02x", header.pkg_data_riv[i]);
+    //logNoPrefix("\n");
+    
+    AES_ctx ctx;
     AES_init_ctx_iv(&ctx, npdrm_pkg_ps3_key, header.pkg_data_riv);
     AES_CTR_xcrypt_buffer(&ctx, (u8*)file_list, sizeof(PKGItemRecord) * header.item_count);
     
     // Get PARAM.SFO
+    Helpers::debugAssert(getFile("PARAM.SFO", "/dev_hdd1/"), "PKGInstaller: couldn't get PARAM.SFO");
+    
+    // Load SFO
+    SFOLoader sfo (ps3->fs);
+    auto data = sfo.parse("/dev_hdd1/PARAM.SFO");
+    title       = (char*)data.strings["TITLE"].data();
+    title_id    = (char*)data.strings["TITLE_ID"].data();
+    log("Title    : %s\n", title.c_str());
+    log("Title ID : %s\n", title_id.c_str());
+    
+    fs::remove(ps3->fs.guestPathToHost("/dev_hdd1/PARAM.SFO"));
+    std::fclose(file);
+}
+
+bool PKGInstaller::getFile(const fs::path& path, const fs::path& guest_out) {
+    FILE* file = std::fopen(pkg_path.generic_string().c_str(), "rb");
+    
     for (int i = 0; i < header.item_count; i++) {
         //log("File entry:\n");
         //log("Filename offset: 0x%llx\n", (u64)file_list[i].filename_offset);
@@ -86,37 +105,39 @@ void PKGInstaller::load(const fs::path& path) {
         
         u8 iv[16];
         fixIV(header.pkg_data_riv, file_list[i].filename_offset, iv);
-        AES_ctx_set_iv(&ctx, iv);
+        AES_ctx ctx;
+        AES_init_ctx_iv(&ctx, npdrm_pkg_ps3_key, iv);
         AES_CTR_xcrypt_buffer(&ctx, (u8*)filename, file_list[i].filename_size);
-        //log("%s\n", filename);
         
         const auto file_path = fs::path(filename);
         log("%s\n", file_path.generic_string().c_str());
-        if (file_path.filename() == "PARAM.SFO") {
-            createFile("/dev_hdd1/", file_list[i]);
-            
-            // Load SFO
-            SFOLoader sfo (ps3->fs);
-            auto data = sfo.parse("/dev_hdd1/PARAM.SFO");
-            title       = (char*)data.strings["TITLE"].data();
-            title_id    = (char*)data.strings["TITLE_ID"].data();
-            log("Title    : %s\n", title.c_str());
-            log("Title ID : %s\n", title_id.c_str());
-            
-            fs::remove(ps3->fs.guestPathToHost("/dev_hdd1/PARAM.SFO"));
+        if (file_path == path) {
+            createFile(guest_out, file_list[i]);
             delete[] filename;
-            break;
+            std::fclose(file);
+            return true;
         }
         
         delete[] filename;
     }
+    
+    std::fclose(file);
+    return false;
 }
 
-void PKGInstaller::install() {
-    Helpers::debugAssert(file, "PKGInstaller: called install() before load()");
+void PKGInstaller::getFileAsync(const fs::path& path, const fs::path& guest_out, std::function<void(bool)> on_complete) {
+    std::thread worker = std::thread([=]() {
+        on_complete(getFile(path, guest_out));
+    });
+    worker.detach();
+}
+
+bool PKGInstaller::install(std::function<void(float)> signal_progress) {
+    Helpers::debugAssert(!pkg_path.empty(), "PKGInstaller: called install() before load()");
     
     // TODO: Multithread this
     
+    FILE* file = std::fopen(pkg_path.generic_string().c_str(), "rb");
     fs::path install_dir = fs::path("/dev_hdd0/game") / title_id;
     log("Installing %s to %s...\n", content_id, install_dir.generic_string().c_str());
     
@@ -130,15 +151,32 @@ void PKGInstaller::install() {
         
         u8 iv[16];
         fixIV(header.pkg_data_riv, file_list[i].filename_offset, iv);
-        AES_ctx_set_iv(&ctx, iv);
+        AES_ctx ctx;
+        AES_init_ctx_iv(&ctx, npdrm_pkg_ps3_key, iv);
         AES_CTR_xcrypt_buffer(&ctx, (u8*)filename, file_list[i].filename_size);
         
         createFile(install_dir, file_list[i]);
         log(" [%d/%d] Created file %s\n", i + 1, (u32)header.item_count, filename);
         delete[] filename;
+        
+        if (signal_progress)
+            signal_progress((i / (float)header.item_count) * 100.0f);
     }
     
+    std::fclose(file);
     log("Installed successfully\n");
+    return true;
+}
+
+void PKGInstaller::installAsync(std::function<void(bool)> on_complete, std::function<void(float)> signal_progress) {
+    std::thread worker = std::thread([=]() {
+        on_complete(install(signal_progress));
+    });
+    worker.detach();
+}
+
+void PKGInstaller::cancel() {
+    
 }
 
 void PKGInstaller::fixIV(u8* iv, u64 offset, u8* out_iv) {
@@ -155,6 +193,7 @@ void PKGInstaller::fixIV(u8* iv, u64 offset, u8* out_iv) {
 
 void PKGInstaller::createFile(fs::path path, PKGItemRecord& record) {
     // Get filename
+    FILE* file = std::fopen(pkg_path.generic_string().c_str(), "rb");
     char* filename = new char[record.filename_size + 1];  // Add a null terminator to be safe
     std::memset(filename, 0, record.filename_size + 1);
     seek(file, header.data_offset + record.filename_offset, SEEK_SET);
@@ -162,7 +201,8 @@ void PKGInstaller::createFile(fs::path path, PKGItemRecord& record) {
 
     u8 iv[16];
     fixIV(header.pkg_data_riv, record.filename_offset, iv);
-    AES_ctx_set_iv(&ctx, iv);
+    AES_ctx ctx;
+    AES_init_ctx_iv(&ctx, npdrm_pkg_ps3_key, iv);
     AES_CTR_xcrypt_buffer(&ctx, (u8*)filename, record.filename_size);
     
     const auto guest_path = path / std::string(filename);
@@ -172,6 +212,7 @@ void PKGInstaller::createFile(fs::path path, PKGItemRecord& record) {
     // Check if it's a directory
     if (record.flags & 4) {
         fs::create_directories(host_path);
+        std::fclose(file);
         return;
     }
     
@@ -181,10 +222,11 @@ void PKGInstaller::createFile(fs::path path, PKGItemRecord& record) {
         Helpers::panic("Failed to create file %s\n", host_path.generic_string().c_str());
     }
     
-    auto remaining_size = record.data_size;
+    u64 remaining_size = record.data_size;
     for (int i = 0; i < record.data_size; i += BUFFER_SIZE) {
         const auto buf_size = std::min<u64>(BUFFER_SIZE, remaining_size);
         const u64 data_offs = record.data_offset + i;
+        remaining_size -= buf_size;
         
         // Read the buffer
         u8* buf = new u8[buf_size];
@@ -203,4 +245,5 @@ void PKGInstaller::createFile(fs::path path, PKGItemRecord& record) {
     }
     
     std::fclose(new_file);
+    std::fclose(file);
 }
