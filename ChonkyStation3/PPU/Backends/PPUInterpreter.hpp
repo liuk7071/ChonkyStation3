@@ -217,6 +217,7 @@ public:
     void stbux      (const Instruction& instr);
     void add        (const Instruction& instr);
     void lhzx       (const Instruction& instr);
+    void lhzux      (const Instruction& instr);
     void xor_       (const Instruction& instr);
     void mfspr      (const Instruction& instr);
     void mftb       (const Instruction& instr);

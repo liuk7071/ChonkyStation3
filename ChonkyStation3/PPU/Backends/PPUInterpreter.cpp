@@ -260,6 +260,7 @@ int PPUInterpreter::step() {
                     case ADD:       add(instr);     break;
                     case DCBT:      break;
                     case LHZX:      lhzx(instr);    break;
+                    case LHZUX:     lhzux(instr);    break;
                     case XOR:       xor_(instr);    break;
                     case MFSPR:     mfspr(instr);   break;
                     case DST:       break;
@@ -1936,6 +1937,12 @@ void PPUInterpreter::add(const Instruction& instr) {
 
 void PPUInterpreter::lhzx(const Instruction& instr) {
     state.gprs[instr.rt] = mem.read<u16>(instr.ra ? (state.gprs[instr.ra] + state.gprs[instr.rb]) : state.gprs[instr.rb]);
+}
+
+void PPUInterpreter::lhzux(const Instruction& instr) {
+    const u64 addr = state.gprs[instr.ra] + state.gprs[instr.rb];
+    state.gprs[instr.rt] = mem.read<u16>(addr & 0xffffffff);
+    state.gprs[instr.ra] = addr;    // Update
 }
 
 void PPUInterpreter::xor_(const Instruction& instr) {

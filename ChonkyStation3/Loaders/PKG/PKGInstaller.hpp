@@ -7,6 +7,7 @@
 #include <functional>
 
 #include <aes.hpp>
+#include <plusaes/plusaes.hpp>
 
 
 // Each file will be split in buffers of this size, and only 1 buffer will be loaded in memory at once

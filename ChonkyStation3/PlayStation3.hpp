@@ -14,6 +14,7 @@
 #include <RSX.hpp>
 #include <Memory.hpp>
 #include <ELF/ELFLoader.hpp>
+#include <ELF/SELFToELF.hpp>
 #include <SFO/SFOLoader.hpp>
 #include <Game/GameLoader.hpp>
 #include <PKG/PKGInstaller.hpp>
@@ -86,6 +87,7 @@ public:
     void resetButtons();
 
     std::string getCurrentUserID() { return "00000001"; }
+    fs::path getCurrentUserHomeDir() { return "/dev_hdd0/home/" + getCurrentUserID(); }
 
     // Debugging
     void enableSPUOnPC(u32 unused);

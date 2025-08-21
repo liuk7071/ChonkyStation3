@@ -10,7 +10,7 @@
 
 // Scheduler class ported from ChonkyStation (rewrite)
 
-static constexpr auto schedulerMaxEntries = 64;
+static constexpr auto schedulerMaxEntries = 128;
 
 // https://stackoverflow.com/questions/19467485/how-to-remove-element-not-at-top-from-priority-queue
 template<typename T>
