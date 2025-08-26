@@ -95,6 +95,7 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
         log("Done\n");
         std::fclose(file);
         std::fclose(out);
+        delete[] buf;
         return;
     }
     
