@@ -96,7 +96,7 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
         std::fclose(file);
         std::fclose(out);
         delete[] buf;
-        return;
+        return 0;
     }
     
     u8 content_id[0x31];    // Add a null terminator
