@@ -100,11 +100,62 @@ PRXLibraryInfo PRXLoader::load(const fs::path& path, PRXExportTable& exports) {
     log("* exports start: 0x%08x\n", (u32)lib->exports_start);
     log("* exports end  : 0x%08x\n", (u32)lib->exports_end);
 
+    // Exports
+    u32 prologue_func = 0;
+    u32 epilogue_func = 0;
     u32 start_func = 0;
     u32 stop_func = 0;
+    exportModules(lib->exports_start, lib->exports_end, exports, lib, &prologue_func, &epilogue_func, &start_func, &stop_func);
+
+    // Imports
+    for (u32 addr = lib->imports_start; addr < lib->imports_end; ) {
+        PRXModule* module = (PRXModule*)ps3->mem.getPtr(addr);
+        const std::string name = Helpers::readString(ps3->mem.getPtr(module->name_ptr));
+
+        log("Library %s imports module %s (%d functions, %d variables)\n", lib->name, name.c_str(), (u16)module->n_funcs, (u16)module->n_vars);
+        
+        const bool lle = ps3->prx_manager.isLLEModule(name);        // Is this a LLE module?
+        const bool user = !CellTypes::module_list.contains(name);   // Is this an user module? (Exported by a custom SPRX)
+        if (lle)
+            ps3->prx_manager.require(name);
+
+        for (int i = 0; i < module->n_funcs; i++) {
+            const u32 nid = ps3->mem.read<u32>(module->nids_ptr + i * sizeof(u32));
+            const u32 addr = ps3->mem.read<u32>(module->addrs_ptr + i * sizeof(u32));
+            ps3->module_manager.registerImport(addr, nid);
+            log("* Imported function: 0x%08x @ 0x%08x \t[%s]\n", nid, addr, ps3->module_manager.getImportName(nid).c_str());
+            StubPatcher::patch(addr, ps3->module_manager.isForcedHLE(nid) ? false : (lle || user), ps3);
+        }
+
+        if (module->size)
+            addr += module->size;
+        else
+            addr += sizeof(PRXModule);
+    }
+    log("\n");
+
+    if (path.filename() == "liblv2.prx") {
+        start_func = 0;
+    }
+
+    return { Helpers::readString(lib->name), path.filename().generic_string(), ps3->handle_manager.request(), lib->toc, prologue_func, epilogue_func, start_func, stop_func };
+}
+
+std::string PRXLoader::getSpecialFunctionName(const u32 nid) {
+    if (special_function_names.contains(nid))
+        return special_function_names[nid];
+    else
+        return std::format("unk_special_{:08x}", nid);
+}
+
+void PRXLoader::exportModules(const u32 exports_start, const u32 exports_end, PRXExportTable& exports, PRXLibrary* lib, u32* prologue_func, u32* epilogue_func, u32* start_func, u32* stop_func) {
+    if (prologue_func) *prologue_func = 0;
+    if (epilogue_func) *epilogue_func = 0;
+    if (start_func)    *start_func    = 0;
+    if (stop_func)     *stop_func     = 0;
 
     int module_idx = 0;
-    for (u32 addr = lib->exports_start; addr < lib->exports_end; module_idx++) {
+    for (u32 addr = exports_start; addr < exports_end; module_idx++) {
         PRXModule* module = (PRXModule*)ps3->mem.getPtr(addr);
         log("%d:\n", module_idx);
 
@@ -116,7 +167,10 @@ PRXLibraryInfo PRXLoader::load(const fs::path& path, PRXExportTable& exports) {
                 log("* Exported function: %s @ 0x%08x\n", getSpecialFunctionName(nid).c_str(), addr);
                 
                 switch (nid) {
-                case 0xbc9a0086: start_func = addr; break;
+                case 0x0d10fd3f: if (prologue_func) *prologue_func  = addr; break;
+                case 0x330f7005: if (epilogue_func) *epilogue_func  = addr; break;
+                case 0xab779874: if (stop_func)     *stop_func      = addr; break;
+                case 0xbc9a0086: if (start_func)    *start_func     = addr; break;
                 }
             }
             for (int i = 0; i < module->n_vars; i++) {
@@ -132,14 +186,14 @@ PRXLibraryInfo PRXLoader::load(const fs::path& path, PRXExportTable& exports) {
             continue;
         }
 
-        log("Library %s exports module %s (%d functions, %d variables)\n", lib->name, ps3->mem.getPtr(module->name_ptr), (u16)module->n_funcs, (u16)module->n_vars);
+        log("Library %s exports module %s (%d functions, %d variables)\n", lib ? (const char*)lib->name : "UNNAMED", ps3->mem.getPtr(module->name_ptr), (u16)module->n_funcs, (u16)module->n_vars);
         //Helpers::debugAssert(module->n_vars == 0, "PRX module: n_vars > 0\n");
         if (module->n_vars != 0) log("WARNING: exporting module with variables (unimplemented)\n");
 
         for (int i = 0; i < module->n_funcs; i++) {
             const u32 nid = ps3->mem.read<u32>(module->nids_ptr + i * sizeof(u32));
             const u32 addr = ps3->mem.read<u32>(module->addrs_ptr + i * sizeof(u32));
-            exports.funcs[nid] = { addr, allocations[0] + lib->toc };
+            exports.funcs[nid] = { addr };
             log("* Exported function: 0x%08x @ 0x%08x \t[%s]\n", nid, addr, ps3->module_manager.getImportName(nid).c_str());
         }
 
@@ -148,43 +202,4 @@ PRXLibraryInfo PRXLoader::load(const fs::path& path, PRXExportTable& exports) {
         else
             addr += sizeof(PRXModule);
     }
-
-    // Imports
-    for (u32 addr = lib->imports_start; addr < lib->imports_end; ) {
-        PRXModule* module = (PRXModule*)ps3->mem.getPtr(addr);
-        const std::string name = Helpers::readString(ps3->mem.getPtr(module->name_ptr));
-
-        log("Library %s imports module %s (%d functions, %d variables)\n", lib->name, name.c_str(), (u16)module->n_funcs, (u16)module->n_vars);
-        
-        const bool lle = ps3->prx_manager.isLLEModule(name);  // Is this a LLE module?
-        if (lle)
-            ps3->prx_manager.require(name);
-
-        for (int i = 0; i < module->n_funcs; i++) {
-            const u32 nid = ps3->mem.read<u32>(module->nids_ptr + i * sizeof(u32));
-            const u32 addr = ps3->mem.read<u32>(module->addrs_ptr + i * sizeof(u32));
-            ps3->module_manager.registerImport(addr, nid);
-            log("* Imported function: 0x%08x @ 0x%08x \t[%s]\n", nid, addr, ps3->module_manager.getImportName(nid).c_str());
-            StubPatcher::patch(addr, ps3->module_manager.isForcedHLE(nid) ? false : lle, ps3);
-        }
-
-        if (module->size)
-            addr += module->size;
-        else
-            addr += sizeof(PRXModule);
-    }
-    log("\n");
-
-    if (path.filename() == "liblv2.prx") {
-        start_func = 0;
-    }
-
-    return { Helpers::readString(lib->name), path.filename().generic_string(), lib->toc, start_func, stop_func };
-}
-
-std::string PRXLoader::getSpecialFunctionName(const u32 nid) {
-    if (special_function_names.contains(nid))
-        return special_function_names[nid];
-    else
-        return std::format("unk_special_{:08x}", nid);
 }

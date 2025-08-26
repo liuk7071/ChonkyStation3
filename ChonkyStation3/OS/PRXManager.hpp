@@ -30,7 +30,9 @@ public:
 
     bool isLLEModule(const std::string name);
     bool isLibLoaded(const std::string name);
+    PRXLibraryInfo getLib(u32 id);
     void require(const std::string name);
+    bool loadModule(const fs::path& path, u32* id = nullptr);  // Return true if the module was loaded
     bool loadModules(); // Returns true if at least 1 module was loaded
     void loadModulesRecursively();
     void initializeLibraries();

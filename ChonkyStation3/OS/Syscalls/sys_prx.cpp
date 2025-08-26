@@ -1,4 +1,6 @@
 #include <Syscall.hpp>
+#include <Loaders/ELF/SELFToELF.hpp>
+#include <Loaders/PRX/PRXLoader.hpp>
 #include "PlayStation3.hpp"
 
 
@@ -32,6 +34,97 @@ struct sys_prx_module_info_option_t {
     BEField<u64> size;
     sys_prx_module_info_t info;
 };
+
+struct sys_prx_start_stop_module_option_t {
+    BEField<u64> size;
+    BEField<u64> cmd;
+    BEField<u64> entry_ptr;
+    BEField<u64> res;
+    BEField<u64> entry2_ptr;
+};
+
+u64 Syscall::sys_prx_load_module() {
+    const u32 name_ptr = ARG0;
+    const u64 flags = ARG1;
+    const u32 opt_ptr = ARG2;
+    fs::path guest_path = Helpers::readString(ps3->mem.getPtr(name_ptr));
+    unimpl("sys_prx_load_module(name_ptr: 0x%08x, flags: 0x%016llx, opt_ptr: 0x%08x) [name: %s]\n", name_ptr, flags, opt_ptr, guest_path.generic_string().c_str());
+
+    const fs::path host_path = ps3->fs.guestPathToHost(guest_path);
+    const fs::path guest_prx_path = guest_path.parent_path() / (guest_path.stem().generic_string() + ".prx");
+    const fs::path host_prx_path  = ps3->fs.guestPathToHost(guest_prx_path);
+    
+    // Decrypt the SPRX
+    SELFToELF self = SELFToELF(ps3);
+    self.makeELF(host_path, host_prx_path);
+    
+    // Load the library
+    u32 id;
+    ps3->prx_manager.loadModule(guest_prx_path, &id);
+    fs::remove(guest_prx_path);
+    
+    return id;
+}
+
+u64 Syscall::sys_prx_start_module() {
+    const u32 id = ARG0;
+    const u64 flags = ARG1;
+    const u32 opt_ptr = ARG2;
+    log_sys_prx("sys_prx_start_module(id: %d, flags: 0x%016llx, opt_ptr: 0x%08x)\n", id, flags, opt_ptr);
+    
+    sys_prx_start_stop_module_option_t* opt = (sys_prx_start_stop_module_option_t*)ps3->mem.getPtr(opt_ptr);
+    auto lib = ps3->prx_manager.getLib(id);
+    if (!lib.id) {
+        Helpers::panic("sys_prx_start_module: Could not get lib with id %d\n", id);
+    }
+    
+    // TODO: opt->cmd
+    log_sys_prx("size : 0x%x\n", (u64)opt->size);
+    log_sys_prx("cmd  : 0x%x\n", (u64)opt->cmd);
+    opt->entry_ptr  = lib.start_func    ? lib.start_func    : -1ull;
+    opt->entry2_ptr = lib.prologue_func ? lib.prologue_func : -1ull;
+    
+    return CELL_OK;
+}
+
+u64 Syscall::sys_prx_stop_module() {
+    const u32 id = ARG0;
+    const u64 flags = ARG1;
+    const u32 opt_ptr = ARG2;
+    log_sys_prx("sys_prx_stop_module(id: %d, flags: 0x%016llx, opt_ptr: 0x%08x)\n", id, flags, opt_ptr);
+    
+    sys_prx_start_stop_module_option_t* opt = (sys_prx_start_stop_module_option_t*)ps3->mem.getPtr(opt_ptr);
+    auto lib = ps3->prx_manager.getLib(id);
+    if (!lib.id) {
+        Helpers::panic("sys_prx_stop_module: Could not get lib with id %d\n", id);
+    }
+    
+    log_sys_prx("size : 0x%x\n", (u64)opt->size);
+    log_sys_prx("cmd  : 0x%x\n", (u64)opt->cmd);
+    switch (opt->cmd) {
+    case 4:
+    case 1: {
+        opt->entry_ptr  = lib.stop_func     ? lib.stop_func     : -1ull;
+        opt->entry2_ptr = lib.epilogue_func ? lib.epilogue_func : -1ull;
+        break;
+    }
+    }
+    
+    return CELL_OK;
+}
+
+u64 Syscall::sys_prx_register_library() {
+    const u32 lib_ptr = ARG0;
+    log_sys_prx("sys_prx_register_library(lib_ptr: 0x%08x)\n", lib_ptr);
+    
+    static constexpr u32 lib_size = 0x1c;
+    PRXLoader prx = PRXLoader(ps3);
+    auto exports = ps3->module_manager.getExportTable();
+    prx.exportModules(lib_ptr, lib_ptr + lib_size, exports);
+    ps3->module_manager.registerExportTable(exports);
+    
+    return CELL_OK;
+}
 
 u64 Syscall::sys_prx_get_module_list() {
     const u64 flags = ARG0;

@@ -59,15 +59,29 @@ void PlayStation3::setFlipHandler(std::function<void(void)> const& handler) {
     flip_handler = handler;
 }
 
-void PlayStation3::init() {
+int PlayStation3::init() {
     // Only init if we aren't replaying an RSX capture (aka if we actually booted something)
     if (!rsx_capture_path.empty()) return;
-
+    
+    // Use the pre-decrypted EBOOT.elf if present, otherwise decrypt it ourselves and delete it later
+    bool decrypted_self = false;
+    if (!fs::exists(elf_path)) {
+        SELFToELF self = SELFToELF(this);
+        if (int e = self.makeELF(fs.guestPathToHost(elf_path_encrypted), elf_path))
+            return e;
+        decrypted_self = true;
+    }
+    
     // Load ELF file
     ELFLoader elf = ELFLoader(this, mem);
     std::unordered_map<u32, u32> imports = {};
     ELFLoader::PROCParam proc_param;
     auto entry = elf.load(elf_path, imports, proc_param, module_manager);
+    
+    // Delete the decrypted ELF if we decrypted it ourselves
+    if (decrypted_self) {
+        fs::remove(elf_path);
+    }
 
     // Mount /app_home
     fs.mount(Filesystem::Device::APP_HOME, elf_path.parent_path());
@@ -81,7 +95,7 @@ void PlayStation3::init() {
     elf_path_encrypted += '\0';
 
     Helpers::debugAssert(!proc_param.ppc_seg, "Unhandled non-zero ppc_seg\n");
-    Thread* main_thread = thread_manager.createThread(entry, proc_param.primary_stacksize, 0, proc_param.primary_prio, (const u8*)"main", elf.tls_vaddr, elf.tls_filesize, elf.tls_memsize, true, elf_path_encrypted);
+    Thread* main_thread = thread_manager.createThread(entry, proc_param.primary_stacksize, 0, proc_param.primary_prio, (const u8*)"main", elf.tls_vaddr, elf.tls_filesize, elf.tls_memsize, true, false, elf_path_encrypted);
     ppu->state.gprs[11] = entry;
     ppu->state.gprs[12] = proc_param.malloc_pagesize ? proc_param.malloc_pagesize : 0x100000;
 
@@ -98,7 +112,7 @@ void PlayStation3::init() {
     mem.write<u32>(idle_thread_entry + 4, 0x4bfffffc);  // b label
     mem.write<u32>(idle_thread_entry + 10, idle_thread_entry);
 
-    Thread* idle_thread = thread_manager.createThread(idle_thread_entry + 10, DEFAULT_STACK_SIZE, 0, 0, (const u8*)"idle", 0, 0, 0);
+    Thread* idle_thread = thread_manager.createThread(idle_thread_entry + 10, DEFAULT_STACK_SIZE, 0, 0, (const u8*)"idle", 0, 0, 0, false, true);
     idle_thread->is_idle_thread = true;
     // Tell the thread manager the ID of the idle thread
     thread_manager.idle_thread_id = idle_thread->id;
@@ -136,6 +150,8 @@ void PlayStation3::init() {
         mem.markAsSlowMem(enable_spu_on_pc >> PAGE_SHIFT, true, false);
         printf("Will enable SPU Thread %s on pc 0x%08x\n", spu_thread_to_enable.c_str(), enable_spu_on_pc);
     }
+    
+    return 0;
 }
 
 void PlayStation3::run() {

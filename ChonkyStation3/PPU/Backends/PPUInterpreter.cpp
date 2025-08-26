@@ -3,7 +3,7 @@
 
 
 //#define PRINT_DEBUG_SYMBOLS
-#define TRACK_CALL_STACK
+//#define TRACK_CALL_STACK
 //#define TRACK_STATE
 //#define ENABLE_CONDITIONAL_TRACE_LOG
 
@@ -52,7 +52,7 @@ int PPUInterpreter::step() {
         printf("%s\n", PPUDisassembler::disasm(state, instr, &mem).c_str());
 #endif
 #ifdef TRACK_STATE
-    ps3->crash_analyzer.saveState({ state, instr });
+        ps3->crash_analyzer.saveState({ state, instr });
 #endif
 
 #endif

@@ -56,8 +56,32 @@ bool PRXManager::isLibLoaded(const std::string name) {
     return loaded;
 }
 
-bool PRXManager::loadModules() {
+PRXLibraryInfo PRXManager::getLib(u32 id) {
+    for (auto& i : libs) {
+        if (i.id == id)
+            return i;
+    }
+    return { .id = 0 };
+}
+
+bool PRXManager::loadModule(const fs::path& path, u32* id) {
+    PRXLoader loader = PRXLoader(ps3);
     PRXExportTable exports = ps3->module_manager.getExportTable();
+    
+    if (!isLibLoaded(path.filename().generic_string())) {
+        const fs::path lib_path = ps3->fs.guestPathToHost(path);
+        auto lib = loader.load(lib_path, exports);
+        libs.push_back(lib);
+        if (id) *id = lib.id;
+        // Update export table
+        ps3->module_manager.registerExportTable(exports);
+        return true;
+    }
+    
+    return false;
+}
+
+bool PRXManager::loadModules() {
     PRXLoader loader = PRXLoader(ps3);
     bool loaded = false;
 
@@ -74,15 +98,10 @@ bool PRXManager::loadModules() {
     const auto to_load = required_modules;
 
     for (auto& i : to_load) {
-        if (!isLibLoaded(i)) {
-            const fs::path lib_path = ps3->fs.guestPathToHost(lib_dir / i);
-            libs.push_back(loader.load(lib_path, exports));
+        if (loadModule(lib_dir / i))
             loaded = true;
-        }
     }
 
-    // Update export table
-    ps3->module_manager.registerExportTable(exports);
     return loaded;
 }
 
@@ -94,6 +113,8 @@ void PRXManager::initializeLibraries() {
     // Initialize libraries
     for (auto& i : libs) {
         log("Initializing lib %s...\n", i.name.c_str());
+        if (i.prologue_func)
+            ps3->ppu->runFunc(ps3->mem.read<u32>(i.prologue_func), ps3->mem.read<u32>(i.prologue_func + 4));
         if (i.start_func)
             ps3->ppu->runFunc(ps3->mem.read<u32>(i.start_func), ps3->mem.read<u32>(i.start_func + 4));
         log("Done\n");

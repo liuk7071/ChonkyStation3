@@ -19,7 +19,7 @@ public:
     }
     PlayStation3* ps3;
 
-    Thread* createThread(u64 entry, u64 stack_size, u64 arg, s32 prio, const u8* name, u32 tls_vaddr, u32 tls_filesize, u32 tls_memsize, bool is_start_thread = false, std::string executable_path = "");
+    Thread* createThread(u64 entry, u64 stack_size, u64 arg, s32 prio, const u8* name, u32 tls_vaddr, u32 tls_filesize, u32 tls_memsize, bool is_start_thread = false, bool is_emulator_thread = false, std::string executable_path = "");
     void contextSwitch(Thread& thread);
     Thread* getCurrentThread();
     Thread* getThreadByID(u32 id);
@@ -40,5 +40,6 @@ public:
 
 private:
     MAKE_LOG_FUNCTION(log, thread);
-    u32 next_thread_id = 0x10000;
+    u32 next_thread_id = 0x10000000;
+    u32 next_emu_thread_id = 0x1000;
 };

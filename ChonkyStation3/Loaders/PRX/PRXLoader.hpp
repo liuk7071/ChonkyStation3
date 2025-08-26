@@ -23,20 +23,6 @@ public:
     PRXLoader(PlayStation3* ps3) : ps3(ps3) {}
     PlayStation3* ps3;
 
-    PRXLibraryInfo load(const fs::path& path, PRXExportTable& exports);
-    std::string getSpecialFunctionName(const u32 nid);
-
-    std::unordered_map<u64, std::string> segment_type_string {
-        { ELFIO::PT_LOAD,   "PT_LOAD    " },
-        { ELFIO::PT_TLS,    "PT_TLS     " },
-        { SCE_PPURELA,      "SCE_PPURELA" },
-    };
-
-    std::unordered_map<u32, std::string> special_function_names {
-        { 0xab779874, "module_stop" },
-        { 0xbc9a0086, "module_start" },
-    };
-
     struct PRXRelocation {
         BEField<u64> offs;
         BEField<u16> unk;
@@ -75,6 +61,23 @@ public:
         BEField<u32> var_stubs_ptr;
         BEField<u32> unk2;
         BEField<u32> unk3;
+    };
+    
+    PRXLibraryInfo load(const fs::path& path, PRXExportTable& exports);
+    void exportModules(const u32 exports_start, const u32 exports_end, PRXExportTable& exports, PRXLibrary* lib = nullptr, u32* prologue_func = nullptr, u32* epilogue_func = nullptr, u32* start_func = nullptr, u32* stop_func = nullptr);
+    std::string getSpecialFunctionName(const u32 nid);
+
+    std::unordered_map<u64, std::string> segment_type_string {
+        { ELFIO::PT_LOAD,   "PT_LOAD    " },
+        { ELFIO::PT_TLS,    "PT_TLS     " },
+        { SCE_PPURELA,      "SCE_PPURELA" },
+    };
+
+    std::unordered_map<u32, std::string> special_function_names {
+        { 0x0d10fd3f, "module_prologue" },
+        { 0x330f7005, "module_epilogue" },
+        { 0xab779874, "module_stop" },
+        { 0xbc9a0086, "module_start" },
     };
 
 private:

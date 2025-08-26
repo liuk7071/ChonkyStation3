@@ -100,6 +100,10 @@ public:
     u64 sys_rwlock_wunlock();
 
     // sys_prx
+    u64 sys_prx_load_module();
+    u64 sys_prx_start_module();
+    u64 sys_prx_stop_module();
+    u64 sys_prx_register_library();
     u64 sys_prx_get_module_list();
     u64 sys_prx_get_module_info();
     u64 sys_prx_get_module_id_by_name();

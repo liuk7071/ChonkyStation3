@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common.hpp>
+#include <CellTypes.hpp>
 #include <logger.hpp>
 #include <BEField.hpp>
 #include <elfio/elfio.hpp>

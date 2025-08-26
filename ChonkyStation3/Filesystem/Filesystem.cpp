@@ -69,9 +69,27 @@ void Filesystem::closedir(u32 file_id) {
     // TODO
 }
 
-u64 Filesystem::read(u32 file_id, u8* buf, u64 size) {
+u64 Filesystem::read(u32 file_id, u32 buf_ptr, u64 size) {
+    // Read up to PAGE_SIZE at max, split into multiple reads if larger
     FILE* file = getFileFromID(file_id).file;
-    return std::fread(buf, sizeof(u8), size, file);
+    u64 bytes_read = 0;
+    u32 cur_ptr = buf_ptr;
+    u64 size_remaining = size;
+    
+    // Make the first read read up to page boundary, so that the next reads are page aligned
+    const u64 to_read = std::min(size_remaining, ps3->mem.ram.pageAlign(buf_ptr) - buf_ptr);
+    bytes_read += std::fread(ps3->mem.getPtr(cur_ptr), sizeof(u8), to_read, file);
+    size_remaining -= to_read;
+    cur_ptr += to_read;
+    
+    while (size_remaining > 0) {
+        const u64 to_read = std::min(PAGE_SIZE, size_remaining);
+        bytes_read += std::fread(ps3->mem.getPtr(cur_ptr), sizeof(u8), to_read, file);
+        size_remaining -= to_read;
+        cur_ptr += to_read;
+    }
+    
+    return bytes_read;
 }
 
 u64 Filesystem::seek(u32 file_id, s64 offs, u32 mode) {

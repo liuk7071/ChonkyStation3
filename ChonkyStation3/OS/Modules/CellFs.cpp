@@ -53,7 +53,7 @@ u64 CellFs::cellFsReadWithOffset() {
     // Seek to new position
     ps3->fs.seek(file_id, offs, SEEK_SET);
     // Read
-    const u64 bytes_read = ps3->fs.read(file_id, ps3->mem.getPtr(buf), size);
+    const u64 bytes_read = ps3->fs.read(file_id, buf, size);
     if (bytes_read_ptr)
         ps3->mem.write<u64>(bytes_read_ptr, bytes_read);
     // Restore old position
@@ -100,8 +100,8 @@ u64 CellFs::cellFsRead() {
     const u64 size = ARG2;
     const u32 bytes_read_ptr = ARG3;    // bytes_read is u64
     log("cellFsRead(file_id: %d, buf: 0x%08x, size: %lld, bytes_read_ptr: 0x%08x)\n", file_id, buf, size, bytes_read_ptr);
-
-    const u64 bytes_read = ps3->fs.read(file_id, ps3->mem.getPtr(buf), size);
+    
+    const u64 bytes_read = ps3->fs.read(file_id, buf, size);
     if (bytes_read_ptr) // Note: this behavior is different from sys_fs_read, which returns CELL_EFAULT in case bytes_read_ptr is null.
         ps3->mem.write<u64>(bytes_read_ptr, bytes_read);
 

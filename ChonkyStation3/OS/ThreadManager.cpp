@@ -2,9 +2,9 @@
 #include "PlayStation3.hpp"
 
 
-Thread* ThreadManager::createThread(u64 entry, u64 stack_size, u64 arg, s32 prio, const u8* name, u32 tls_vaddr, u32 tls_filesize, u32 tls_memsize, bool is_start_thread, std::string executable_path) {
-    threads.push_back({ entry, stack_size, arg, prio, name, next_thread_id++, tls_vaddr, tls_filesize, tls_memsize, this });
-    // If this is the first thread we create, set 
+Thread* ThreadManager::createThread(u64 entry, u64 stack_size, u64 arg, s32 prio, const u8* name, u32 tls_vaddr, u32 tls_filesize, u32 tls_memsize, bool is_start_thread, bool is_emulator_thread, std::string executable_path) {
+    threads.push_back({ entry, stack_size, arg, prio, name, !is_emulator_thread ? next_thread_id++ : next_emu_thread_id++, tls_vaddr, tls_filesize, tls_memsize, this });
+    // If this is the first thread we create, set
     // current_thread to point to this thread and initialize ppu
     if (is_start_thread) {
         current_thread_id = threads.back().id;

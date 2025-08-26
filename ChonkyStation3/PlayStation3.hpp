@@ -73,7 +73,7 @@ public:
     void gameSelector();
     void loadGame(const GameLoader::InstalledGame& game);
     void setFlipHandler(std::function<void(void)> const& handler);
-    void init();
+    int  init();
     void run();
     void step();
     void printCrashInfo(std::runtime_error err);

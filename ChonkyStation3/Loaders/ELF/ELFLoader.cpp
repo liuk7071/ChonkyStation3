@@ -72,11 +72,12 @@ u64 ELFLoader::load(const fs::path& path, std::unordered_map<u32, u32>& imports,
                 std::string name;
                 u8* namePtr = mem.getPtr(stub->s_modulename);
                 name = Helpers::readString(namePtr);
-                const bool lle = ps3->prx_manager.isLLEModule(name);  // Is this a LLE module?
+                const bool lle = ps3->prx_manager.isLLEModule(name);        // Is this a LLE module?
+                const bool user = !CellTypes::module_list.contains(name);   // Is this an user module? (Exported by a custom SPRX)
                 if (lle)
                     ps3->prx_manager.require(name);
 
-                log("Found module %s %s with %d imports\n", name.c_str(), lle ? "(LLE)" : "", (u16)stub->s_imports);
+                log("Found module %s %s with %d imports\n", name.c_str(), lle ? "(LLE)" : (user ? "(user)" : ""), (u16)stub->s_imports);
 
                 for (int i = 0; i < stub->s_imports; i++) {
                     u32 nid = mem.read<u32>(stub->s_nid + i * 4);
@@ -84,7 +85,7 @@ u64 ELFLoader::load(const fs::path& path, std::unordered_map<u32, u32>& imports,
                     imports[addr] = nid;
                     log("* Imported function: 0x%08x @ 0x%08x \t[%s]\n", nid, addr, module_manager.getImportName(nid).c_str());
 
-                    StubPatcher::patch(addr, ps3->module_manager.isForcedHLE(nid) ? false : lle, ps3);
+                    StubPatcher::patch(addr, ps3->module_manager.isForcedHLE(nid) ? false : (lle || user), ps3);
                 }
                 log("\n");
             }

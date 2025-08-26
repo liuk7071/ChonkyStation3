@@ -3,6 +3,8 @@
 #include <common.hpp>
 #include <BEField.hpp>
 
+#include <unordered_set>
+
 
 #define ARG0 ps3->ppu->state.gprs[3]
 #define ARG1 ps3->ppu->state.gprs[4]
@@ -14,6 +16,14 @@
 #define ARG7 ps3->ppu->state.gprs[10]
 #define ARG8 ps3->mem.read<u64>(ps3->ppu->state.gprs[1] + 0x70)
 #define ARG9 ps3->mem.read<u64>(ps3->ppu->state.gprs[1] + 0x74)
+
+// Use and modify these macros to do stuff whenever an arg is accessed via the lambdas
+//#define ARG0 ([&]() -> u64 { u64 val = ps3->ppu->state.gprs[3]; return val; })(); ps3->ppu->state.gprs[3]
+//#define ARG1 ([&]() -> u64 { u64 val = ps3->ppu->state.gprs[4]; return val; })(); ps3->ppu->state.gprs[4]
+//#define ARG2 ([&]() -> u64 { u64 val = ps3->ppu->state.gprs[5]; return val; })(); ps3->ppu->state.gprs[5]
+//#define ARG3 ([&]() -> u64 { u64 val = ps3->ppu->state.gprs[6]; return val; })(); ps3->ppu->state.gprs[6]
+//#define ARG4 ([&]() -> u64 { u64 val = ps3->ppu->state.gprs[7]; return val; })(); ps3->ppu->state.gprs[7]
+//#define ARG5 ([&]() -> u64 { u64 val = ps3->ppu->state.gprs[8]; return val; })(); ps3->ppu->state.gprs[8]
 
 namespace CellTypes {
 
@@ -49,5 +59,117 @@ struct CellFsStat {
     BEField<u64> size;
     BEField<u64> blksize;
 };
+
+static const std::unordered_set<std::string> module_list = {
+    "sys_net",
+    "cellHttp",
+    "cellHttpUtil",
+    "cellSsl",
+    "cellHttps",
+    "libvdec",
+    "cellAdec",
+    "cellDmux",
+    "cellVpost",
+    "cellRtc",
+    "cellSpurs",
+    "cellOvis",
+    "cellSheap",
+    "cellSync",
+    "sys_fs",
+    "cellJpgDec",
+    "cellGcmSys",
+    "cellAudio",
+    "cellPamf",
+    "cellAtrac",
+    "cellNetCtl",
+    "cellSysutil",
+    "cellSysmodule",
+    "sceNp",
+    "sys_io",
+    "cellPngDec",
+    "cellFont",
+    "cellFontFT",
+    "cell_FreeType2",
+    "cellUsbd",
+    "cellSail",
+    "cellL10n",
+    "cellResc",
+    "cellDaisy",
+    "cellKey2char",
+    "cellMic",
+    "cellCamera",
+    "cellVdecMpeg2",
+    "cellVdecAvc",
+    "cellAdecLpcm",
+    "cellAdecAc3",
+    "cellAdecAtx",
+    "cellAdecAt3",
+    "cellDmuxPamf",
+    "sys_lv2dbg",
+    "cellSysutilAvcExt",
+    "cellUsbPspcm",
+    "cellSysutilAvconfExt",
+    "cellUserInfo",
+    "cellSaveData",
+    "cellSubDisplay",
+    "cellRec",
+    "cellVideoExportUtility",
+    "cellGameExec",
+    "sceNp2",
+    "cellSysutilAp",
+    "sceNpClans",
+    "cellOskExtUtility",
+    "cellVdecDivx",
+    "cellJpgEnc",
+    "cellGame",
+    "cellBGDLUtility",
+    "cell_FreeType2",
+    "cellVideoUpload",
+    "cellSysconfExtUtility",
+    "cellFiber",
+    "sceNpCommerce2",
+    "sceNpTus",
+    "cellVoice",
+    "cellAdecCelp8",
+    "cellCelp8Enc",
+    "cellSysutilMisc",
+    "cellMusicUtility",
+    "libad_core",
+    "libad_async",
+    "libad_billboard_util",
+    "cellScreenShotUtility",
+    "cellMusicDecodeUtility",
+    "cellSpursJq",
+    "cellPngEnc",
+    "cellMusicDecodeUtility",
+    "libmedi",
+    "cellSync2",
+    "sceNpUtil",
+    "cellRudp",
+    "sceNpSns",
+    "libgem",
+    "cellCrossController",
+    "cellCelpEnc",
+    "cellGifDec",
+    "cellAdecCelp",
+    "cellAdecM2bc",
+    "cellAdecM4aac",
+    "cellAdecMp3",
+    "cellImeJpUtility",
+    "cellMusicUtility",
+    "cellPhotoUtility",
+    "cellPrintUtility",
+    "cellPhotoImportUtil",
+    "cellMusicExportUtility",
+    "cellPhotoDecodeUtil",
+    "cellSearchUtility",
+    "cellSysutilAvc2",
+    "cellSailRec",
+    "sceNpTrophy",
+    "cellSysutilNpEula",
+    "cellAdecAt3multi",
+    "cellAtracMulti"
+};
+
 
 }   // End namespce OSTypes

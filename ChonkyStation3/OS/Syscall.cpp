@@ -152,17 +152,21 @@ void Syscall::doSyscall(bool decrement_pc_if_module_call) {
     case 141:   ps3->ppu->state.gprs[3] = sys_timer_usleep();                       break;
     case 142:   ps3->ppu->state.gprs[3] = sys_timer_sleep();                        break;
     case 144: {
+        const u32 timezone_ptr = ARG0;
+        const u32 summertime_ptr = ARG1;
         log_misc("sys_time_get_timezone()\n");
-        ps3->mem.write<u32>(ARG0, 60);  // timezone (60 == UTC+1 I think)
-        ps3->mem.write<u32>(ARG1, 0);   // summertime
+        ps3->mem.write<u32>(timezone_ptr, 60);  // timezone (60 == UTC+1 I think)
+        ps3->mem.write<u32>(summertime_ptr, 0);   // summertime
         ps3->ppu->state.gprs[3] = CELL_OK;
         break;
     }
     case 145: {
+        const u32 s_ptr = ARG0;
+        const u32 us_ptr = ARG1;
         log_misc("sys_time_get_current_time()\n");
         const auto time = std::chrono::system_clock::now().time_since_epoch();
-        ps3->mem.write<u64>(ARG0, std::chrono::floor<std::chrono::seconds>(time).count());
-        ps3->mem.write<u64>(ARG1, std::chrono::floor<std::chrono::nanoseconds>(time).count());
+        ps3->mem.write<u64>(s_ptr, std::chrono::floor<std::chrono::seconds>(time).count());
+        ps3->mem.write<u64>(us_ptr, std::chrono::floor<std::chrono::nanoseconds>(time).count());
         ps3->ppu->state.gprs[3] = CELL_OK;
         break;
     }
@@ -213,26 +217,21 @@ void Syscall::doSyscall(bool decrement_pc_if_module_call) {
     case 352:   ps3->ppu->state.gprs[3] = sys_memory_get_user_memory_size();                    break;
     case 383:   todo("sys_game_get_temperature()");                                             break;
     case 403: {   // puts
+        const u32 str_ptr = ARG1;
+        const u64 len = ARG2;
         std::string str;
-        u8* ptr = ps3->mem.getPtr(ARG1);
-        for (int i = 0; i < ARG2; i++)
+        u8* ptr = ps3->mem.getPtr(str_ptr);
+        for (int i = 0; i < len; i++)
             str += *ptr++;
         tty("%s", str.c_str());
         ps3->ppu->state.gprs[3] = CELL_OK;
         break;
     }
-    case 462:   ps3->ppu->state.gprs[3] = CELL_OK;  break;  // Debug syscall unavailable on retail consoles (liblv2 tries to use this)
-    case 480: {
-        const u32 name_ptr = ARG0;
-        const u64 flags = ARG1;
-        const u32 opt_ptr = ARG2;
-        std::string name = Helpers::readString(ps3->mem.getPtr(name_ptr));
-        unimpl("sys_prx_load_module(name_ptr: 0x%08x, flags: 0x%016llx, opt_ptr: 0x%08x) [name: %s] UNIMPLEMENTED\n", name_ptr, flags, opt_ptr, name.c_str());
-
-        ps3->ppu->state.gprs[3] = ps3->handle_manager.request();
-        break;
-    }
-    case 481:   ps3->ppu->state.gprs[3] = CELL_OK;    unimpl("sys_prx_start_module() UNIMPLEMENTED\n");  break;
+    case 462:   ps3->ppu->state.gprs[3] = CELL_OK;                  break;  // Debug syscall unavailable on retail consoles (liblv2 tries to use this)
+    case 480:   ps3->ppu->state.gprs[3] = sys_prx_load_module();    break;
+    case 481:   ps3->ppu->state.gprs[3] = sys_prx_start_module();   break;
+    case 482:   ps3->ppu->state.gprs[3] = sys_prx_stop_module();    break;
+    case 483:   todo("sys_prx_unload_module()");                    break;
     case 484: {
         const u32 name_ptr = ARG0;
         const u32 opt_ptr = ARG1;
@@ -242,7 +241,7 @@ void Syscall::doSyscall(bool decrement_pc_if_module_call) {
         ps3->ppu->state.gprs[3] = CELL_OK;
         break;
     }
-    case 486:   todo("sys_prx_register_library()");                                     break;
+    case 486:   ps3->ppu->state.gprs[3] = sys_prx_register_library();                   break;
     case 494:   ps3->ppu->state.gprs[3] = sys_prx_get_module_list();                    break;
     case 495:   ps3->ppu->state.gprs[3] = sys_prx_get_module_info();                    break;
     case 496:   ps3->ppu->state.gprs[3] = sys_prx_get_module_id_by_name();              break;

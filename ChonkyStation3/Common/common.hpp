@@ -13,6 +13,11 @@
 #include <iterator>
 #include <cstring>
 
+
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
 // Types
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
@@ -145,6 +150,8 @@ static inline T bswap(T val) {
     else if constexpr (sizeof(T) == sizeof(u16)) {
 #ifdef _MSC_VER
         return _byteswap_ushort(val);
+#elif __has_builtin(__builtin_bswap16)
+        return __builtin_bswap16(val);
 #else
         return (val >> 8) | (val << 8);
 #endif
@@ -152,6 +159,8 @@ static inline T bswap(T val) {
     else if constexpr (sizeof(T) == sizeof(u32)) {
 #ifdef _MSC_VER
         return _byteswap_ulong(val);
+#elif __has_builtin(__builtin_bswap32)
+        return __builtin_bswap32(val);
 #else
         u32 byte0 = val & 0xff;
         u32 byte1 = (val >> 8) & 0xff;
@@ -163,6 +172,8 @@ static inline T bswap(T val) {
     else if constexpr (sizeof(T) == sizeof(u64)) {
 #ifdef _MSC_VER
         return _byteswap_uint64(val);
+#elif __has_builtin(__builtin_bswap64)
+        return __builtin_bswap64(val);
 #else
         u64 byte0 = val & 0xff;
         u64 byte1 = (val >> 8) & 0xff;

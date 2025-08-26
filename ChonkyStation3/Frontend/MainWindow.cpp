@@ -305,7 +305,15 @@ void MainWindow::updateBackgroundImage() {
 }
 
 void MainWindow::launchGame() {
-    ps3->init();
+    if (int err = ps3->init()) {
+        switch (err) {
+        case -1: {
+            QMessageBox::critical(this, tr("License not found"), tr("You do not have the required license (.rap) file to play this game"));
+            break;
+        }
+        }
+        return;
+    }
     game_thread = std::thread(&MainWindow::gameThread, this);
     game_thread.detach();
     is_game_running = true;

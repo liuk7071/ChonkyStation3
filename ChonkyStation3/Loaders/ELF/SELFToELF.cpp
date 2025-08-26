@@ -61,6 +61,43 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
         Helpers::panic("SELFToELF: SELF %s does not have NPDRM (todo)\n", path_str.c_str());
     }
     
+    // Get the Program Identification Header
+    ProgramIdentificationHeader prog_id_header;
+    seek(file, ext_header.program_identification_header_offset, SEEK_SET);
+    std::fread(&prog_id_header, sizeof(ProgramIdentificationHeader), 1, file);
+    
+    const u32 type      = prog_id_header.prog_type;
+    const u16 revision  = header.attr;
+    const u64 version   = prog_id_header.prog_sceversion;
+    log("Type: %d, revision: %d, version: %d\n", type, revision, version);
+    
+    if (revision == 0x8000 || revision == 0xc000) {
+        log("Debug SELF detected\n");
+        
+        Helpers::debugAssert(revision == 0x8000, "SELFToELF: Debug SELF revision 0xc000 (todo)");
+        
+        // Get file offset and size directly and write to file
+        const u64 elf_offs = revision == 0x8000 ? header.file_offset : Helpers::bswap<u64>(header.file_offset);
+        const u64 elf_size = revision == 0x8000 ? header.file_size : Helpers::bswap<u64>(header.file_size);  // I added the assert above so I will remember to verify if this is swapped too
+        log("Debug SELF offset : 0x%x\n", elf_offs);
+        log("Debug SELF size   : %d\n", elf_size);
+        
+        u8* buf = new u8[elf_size];
+        seek(file, elf_offs, SEEK_SET);
+        std::fread(buf, elf_size, 1, file);
+        
+        FILE* out = std::fopen(out_path.generic_string().c_str(), "wb");
+        if (!out) {
+            Helpers::panic("SELFToELF: Could not open %s for writing\n", out_path.generic_string().c_str());
+        }
+        std::fwrite(buf, elf_size, 1, out);
+        
+        log("Done\n");
+        std::fclose(file);
+        std::fclose(out);
+        return;
+    }
+    
     u8 content_id[0x31];    // Add a null terminator
     std::memset(content_id, 0, 0x31);
     std::memcpy(content_id, sup_header.npd.content_id, 0x30);
@@ -71,7 +108,7 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
     const std::string rap_name = std::string((char*)content_id) + ".rap";
     const fs::path rap_path = ps3->getCurrentUserHomeDir() / "exdata" / rap_name;
     if (!ps3->fs.exists(rap_path)) {
-        Helpers::panic("SELFToELF: Could not find license file for content %s\n", content_id);
+        log("Could not find license file for content %s\n", content_id);
         return -1;
     }
     log("Found license: %s\n", rap_path.generic_string().c_str());
@@ -126,6 +163,7 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
             }
         }
     }
+    
     // Final round of decryption - AES128ECB.
     // This results in our NPDRM license key (KLIC).
     u8 klic[16];
@@ -139,21 +177,12 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
         logNoPrefix("%02x", klic[i]);
     logNoPrefix("\n");
     
-    // Get the Program Identification Header
-    ProgramIdentificationHeader prog_id_header;
-    seek(file, ext_header.program_identification_header_offset, SEEK_SET);
-    std::fread(&prog_id_header, sizeof(ProgramIdentificationHeader), 1, file);
-    
     // Get the Certified File Encryption Root Header, located after the Extended header
     // and encrypted first with AES256CBC using system keys
     // and then with AES128CBC using NPDRM KLIC.
     // The system keys vary depending on type, revision and version of the SELF
     
     // Get the SELF key
-    const u32 type      = prog_id_header.prog_type;
-    const u16 revision  = header.attr;
-    const u64 version   = prog_id_header.prog_sceversion;
-    log("Type: %d, revision: %d, version: %d\n", type, revision, version);
     SELFKey& self_key = getSELFKey(type, revision, version);
     u8 erk[32];
     u8 riv[16];
@@ -289,7 +318,7 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
         }
     }
     
-    log("Done");
+    log("Done\n");
     std::fclose(file);
     std::fclose(out);
     return 0;

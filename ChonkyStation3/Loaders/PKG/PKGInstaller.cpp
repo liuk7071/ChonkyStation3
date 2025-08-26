@@ -106,7 +106,7 @@ bool PKGInstaller::getFile(const fs::path& path, const fs::path& guest_out) {
         plusaes::crypt_ctr((u8*)filename, file_list[i].filename_size, npdrm_pkg_ps3_key, 16, &iv);
 
         const auto file_path = fs::path(filename);
-        log("%s\n", file_path.generic_string().c_str());
+        //log("%s\n", file_path.generic_string().c_str());
         if (file_path == path) {
             createFile(guest_out, file_list[i]);
             delete[] filename;
