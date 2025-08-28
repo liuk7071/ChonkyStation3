@@ -37,15 +37,6 @@ public:
     void loadModulesRecursively();
     void initializeLibraries();
 
-    // Lv2 PRX objects used by sys_prx
-    struct Lv2PRX {
-        u32 id;
-        fs::path path;
-    };
-    std::vector<Lv2PRX> prxs;
-    void createLv2PRXs();
-    Lv2PRX* getLv2PRXById(u32 id);
-
 private:
     MAKE_LOG_FUNCTION(log, manager_prx);
 };

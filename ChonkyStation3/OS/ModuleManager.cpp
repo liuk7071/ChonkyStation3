@@ -446,8 +446,8 @@ void ModuleManager::init() {
         { 0xd06918c4, { "cellSyncMutexTryLock",                             std::bind(&ModuleManager::stub, this) } },
 
         { 0x42b23552, { "sysPRXRegisterLibrary",                            std::bind(&ModuleManager::stub, this) } },
-        { 0x84bb6774, { "sysPRXGetModuleInfo",                              std::bind(&ModuleManager::stub, this), true } },
-        { 0xa5d06bf0, { "sysPRXGetModuleList",                              std::bind(&ModuleManager::stub, this), true } },
+        { 0x84bb6774, { "sysPRXGetModuleInfo",                              std::bind(&ModuleManager::stub, this) } },
+        { 0xa5d06bf0, { "sysPRXGetModuleList",                              std::bind(&ModuleManager::stub, this) } },
 
         { 0xb72bc4e6, { "cellDiscGameGetBootDiscInfo",                      std::bind(&CellGame::cellDiscGameGetBootDiscInfo, &cellGame) } },
         { 0xdfdd302e, { "cellDiscGameRegisterDiscChangeCallback",           std::bind(&ModuleManager::stub, this) } },
@@ -501,6 +501,8 @@ void ModuleManager::init() {
         { 0x20543730, { "cellMsgDialogClose",                               std::bind(&ModuleManager::stub, this) } },
         { 0x62b0f803, { "cellMsgDialogAbort",                               std::bind(&ModuleManager::stub, this) } },
         { 0x7603d3db, { "cellMsgDialogOpen2",                               std::bind(&CellMsgDialog::cellMsgDialogOpen2, &cellMsgDialog) } },
+        { 0x94862702, { "cellMsgDialogProgressBarInc",                      std::bind(&ModuleManager::stub, this) } },
+        { 0x9d6af72a, { "cellMsgDialogProgressBarSetMsg",                   std::bind(&ModuleManager::stub, this) } },
 
         { 0x45fe2fce, { "_sys_spu_printf_initialize",                       std::bind(&ModuleManager::stub, this) } },
         { 0xdd0c1e09, { "_sys_spu_printf_attach_group",                     std::bind(&ModuleManager::stub, this) } },

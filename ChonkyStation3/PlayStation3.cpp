@@ -61,7 +61,7 @@ void PlayStation3::setFlipHandler(std::function<void(void)> const& handler) {
 
 int PlayStation3::init() {
     // Only init if we aren't replaying an RSX capture (aka if we actually booted something)
-    if (!rsx_capture_path.empty()) return;
+    if (!rsx_capture_path.empty()) return 0;
     
     // Use the pre-decrypted EBOOT.elf if present, otherwise decrypt it ourselves and delete it later
     bool decrypted_self = false;
@@ -128,8 +128,6 @@ int PlayStation3::init() {
     ppu_ret_func_all_state = ppu_ret_func + 0x10;
     mem.write<u32>(ppu_ret_func_all_state + 0, 0x39603001);   // li r11, 0x3001
     mem.write<u32>(ppu_ret_func_all_state + 4, 0x44000002);   // sc
-    
-    prx_manager.createLv2PRXs();
 
     // Load PRXs required by the ELF
     prx_manager.loadModulesRecursively();
@@ -176,7 +174,9 @@ void PlayStation3::step() {
     if (curr_block_cycles > reschedule_every_n_cycles) {
         curr_block_cycles = 0;
         thread_manager.reschedule();
-        //if (rsx.hanged) rsx.runCommandList();
+        if (rsx.hanged)  {
+            rsx.runCommandList();
+        }
     }
 }
 

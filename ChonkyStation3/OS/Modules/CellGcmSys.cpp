@@ -110,7 +110,7 @@ u64 CellGcmSys::cellGcmInitBody() {
     auto thread = ps3->thread_manager.createThread(vblank_thread_entry, 1, 0, 0, (const u8*)"gcm_vblank_thread", 0, 0, 0);
     thread->state.pc = vblank_thread_entry;
 
-    // cellGcm writes some commands on init
+    // cellGcm writes some commands on init, simulate the FIFO state after their execution
     ctx->current = ctx->begin + 0x3a0;
     ctrl->get = 0x13a0;
     ctrl->put = 0x13a0;

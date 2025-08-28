@@ -120,20 +120,3 @@ void PRXManager::initializeLibraries() {
         log("Done\n");
     }
 }
-
-void PRXManager::createLv2PRXs() {
-    const auto host_path = ps3->fs.guestPathToHost(lib_dir);
-    for (auto& i : fs::directory_iterator(host_path)) {
-        if (i.path().extension() == ".prx") {
-            prxs.push_back({ ps3->handle_manager.request(), lib_dir / i.path().filename() });
-        }
-    }
-}
-
-PRXManager::Lv2PRX* PRXManager::getLv2PRXById(u32 id) {
-    for (auto& i : prxs) {
-        if (i.id == id)
-            return &i;
-    }
-    return nullptr;
-}

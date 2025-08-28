@@ -19,6 +19,11 @@ struct sys_prx_module_info_t {
     BEField<u32> filename_size;
     BEField<u32> segments_ptr;
     BEField<u32> n_segments;
+    // The following are only present in a newer firmware version
+    BEField<u32> exports_addr;
+    BEField<u32> exports_size;
+    BEField<u32> imports_addr;
+    BEField<u32> imports_size;
 };
 
 struct sys_prx_get_module_list_t {
@@ -32,7 +37,7 @@ struct sys_prx_get_module_list_t {
 
 struct sys_prx_module_info_option_t {
     BEField<u64> size;
-    sys_prx_module_info_t info;
+    BEField<u32> info_ptr;
 };
 
 struct sys_prx_start_stop_module_option_t {
@@ -41,6 +46,14 @@ struct sys_prx_start_stop_module_option_t {
     BEField<u64> entry_ptr;
     BEField<u64> res;
     BEField<u64> entry2_ptr;
+};
+
+struct sys_prx_segment_info_t {
+    BEField<u64> base;
+    BEField<u64> file_size;
+    BEField<u64> mem_size;
+    BEField<u64> idx;
+    BEField<u64> type;
 };
 
 u64 Syscall::sys_prx_load_module() {
@@ -78,11 +91,14 @@ u64 Syscall::sys_prx_start_module() {
         Helpers::panic("sys_prx_start_module: Could not get lib with id %d\n", id);
     }
     
-    // TODO: opt->cmd
-    log_sys_prx("size : 0x%x\n", (u64)opt->size);
-    log_sys_prx("cmd  : 0x%x\n", (u64)opt->cmd);
-    opt->entry_ptr  = lib.start_func    ? lib.start_func    : -1ull;
-    opt->entry2_ptr = lib.prologue_func ? lib.prologue_func : -1ull;
+    switch (opt->cmd) {
+    case 1: {
+        opt->entry_ptr  = lib.start_func    ? lib.start_func    : -1ull;
+        if (opt->size > 0x20)
+            opt->entry2_ptr = lib.prologue_func ? lib.prologue_func : -1ull;
+        break;
+    }
+    }
     
     return CELL_OK;
 }
@@ -105,7 +121,8 @@ u64 Syscall::sys_prx_stop_module() {
     case 4:
     case 1: {
         opt->entry_ptr  = lib.stop_func     ? lib.stop_func     : -1ull;
-        opt->entry2_ptr = lib.epilogue_func ? lib.epilogue_func : -1ull;
+        if (opt->size > 0x20)
+            opt->entry2_ptr = lib.epilogue_func ? lib.epilogue_func : -1ull;
         break;
     }
     }
@@ -135,8 +152,8 @@ u64 Syscall::sys_prx_get_module_list() {
     BEField<u32>* ids = (BEField<u32>*)ps3->mem.getPtr(info->id_ptr);
     int i;
     for (i = 0; i < info->max; i++) {
-        if (i < ps3->prx_manager.prxs.size()) {
-            ids[i] = ps3->prx_manager.prxs[i].id;
+        if (i < ps3->prx_manager.libs.size()) {
+            ids[i] = ps3->prx_manager.libs[i].id;
         }
         else {
             break;
@@ -152,14 +169,46 @@ u64 Syscall::sys_prx_get_module_info() {
     const u64 flags = ARG1;
     const u32 opt_ptr = ARG2;
     log_sys_prx("sys_prx_get_module_info(id: %d, flags: 0x%016llx, info_ptr: 0x%08x)\n", id, flags, opt_ptr);
-
     sys_prx_module_info_option_t* opt = (sys_prx_module_info_option_t*)ps3->mem.getPtr(opt_ptr);
-    PRXManager::Lv2PRX* prx = ps3->prx_manager.getLv2PRXById(id);
-    if (prx) {
-        std::strncpy((char*)opt->info.name, (char*)prx->path.filename().generic_string().c_str(), 30);  // This is wrong, should be module name, not filename
+    sys_prx_module_info_t* info = (sys_prx_module_info_t*)ps3->mem.getPtr(opt->info_ptr);
+    auto lib = ps3->prx_manager.getLib(id);
+    if (!lib.id) {
+        Helpers::panic("sys_prx_get_module_info: Could not find PRX with id %d\n", id);
     }
-    else {
-        Helpers::panic("Could not get PRX with id %d\n", id);
+    
+    log_sys_prx("Module name : %s\n", lib.name.c_str());
+    log_sys_prx("Path        : %s\n", lib.filename.c_str());
+    std::memset(info->name, '\0', 30);
+    std::strncpy((char*)info->name, (char*)lib.name.c_str(), 30);
+    if (info->filename_ptr) {
+        // TODO
+    }
+    
+    info->start_entry = lib.start_func;
+    info->stop_entry = lib.stop_func;
+    
+    info->all_segments_num = lib.segs.size();
+    if (info->segments_ptr) {
+        log_sys_prx("Requested segment info\n");
+        sys_prx_segment_info_t* segs = (sys_prx_segment_info_t*)ps3->mem.getPtr(info->segments_ptr);
+        
+        // Write segment info
+        int i = 0;
+        for (i = 0; i < info->n_segments; i++) {
+            if (i < lib.segs.size()) {
+                segs[i].base        = lib.segs[i].addr;
+                segs[i].file_size   = lib.segs[i].file_size;
+                segs[i].mem_size    = lib.segs[i].mem_size;
+                segs[i].idx         = i;
+                segs[i].type        = lib.segs[i].type;
+                log_sys_prx("Segment %d: base: 0x%08x, filesz: %lld, memsz: %lld\n", i, (u32)segs[i].base, (u64)segs[i].file_size, (u64)segs[i].mem_size);
+            } else break;
+        }
+        info->n_segments = i;
+    }
+    
+    if (info->size > 0x48) {
+        Helpers::panic("TODO: sys_prx_get_module_info with info size > 0x48\n");
     }
 
     return CELL_OK;

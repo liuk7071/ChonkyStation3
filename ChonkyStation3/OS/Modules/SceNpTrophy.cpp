@@ -17,7 +17,7 @@ u64 SceNpTrophy::sceNpTrophyRegisterContext() {
     ps3->ppu->state.gprs[5] = 0;
     ps3->ppu->state.gprs[6] = 0;
     ps3->ppu->state.gprs[7] = arg;
-    //ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
+    ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
     
     for (int i = 0; i <= 3; i++) {
         ps3->ppu->state.gprs[3] = ctx;
@@ -25,7 +25,7 @@ u64 SceNpTrophy::sceNpTrophyRegisterContext() {
         ps3->ppu->state.gprs[5] = i;
         ps3->ppu->state.gprs[6] = 3;
         ps3->ppu->state.gprs[7] = arg;
-        //ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
+        ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
     }
 
     for (int i = 0; i < 32; i++) {
@@ -34,7 +34,7 @@ u64 SceNpTrophy::sceNpTrophyRegisterContext() {
         ps3->ppu->state.gprs[5] = i;
         ps3->ppu->state.gprs[6] = 31;
         ps3->ppu->state.gprs[7] = arg;
-        //ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
+        ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
     }
     
     for (int i = 0; i < 6; i++) {
@@ -43,7 +43,7 @@ u64 SceNpTrophy::sceNpTrophyRegisterContext() {
         ps3->ppu->state.gprs[5] = i;
         ps3->ppu->state.gprs[6] = 5;
         ps3->ppu->state.gprs[7] = arg;
-        //ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
+        ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
     }
 
     ps3->ppu->state.gprs[3] = ctx;
@@ -51,7 +51,7 @@ u64 SceNpTrophy::sceNpTrophyRegisterContext() {
     ps3->ppu->state.gprs[5] = 0;
     ps3->ppu->state.gprs[6] = 0;
     ps3->ppu->state.gprs[7] = arg;
-    //ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
+    ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
     ps3->ppu->state = old_state;
 
     return CELL_OK;

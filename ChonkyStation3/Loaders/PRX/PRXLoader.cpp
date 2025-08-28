@@ -7,6 +7,7 @@ using namespace ELFIO;
 PRXLibraryInfo PRXLoader::load(const fs::path& path, PRXExportTable& exports) {
     const auto elf_binary = Helpers::readBinary(path);
     elfio elf;
+    PRXLibraryInfo lib_info;
 
     // TODO: SPRX (encrypted)
     if (elf_binary[0] == 'S' && elf_binary[1] == 'C' && elf_binary[2] == 'E') {
@@ -32,15 +33,20 @@ PRXLibraryInfo PRXLoader::load(const fs::path& path, PRXExportTable& exports) {
         }
         log("* Segment %d type %s: 0x%016llx -> 0x%016llx\n", i, segment_type_string[seg->get_type()].c_str(), seg->get_virtual_address(), seg->get_virtual_address() + seg->get_memory_size());
 
-        if (seg->get_type() == PT_LOAD) {
+        const auto type = seg->get_type();
+        if (type == PT_LOAD) {
             // Allocate segment in memory
-            auto entry = ps3->mem.alloc(seg->get_memory_size(), 0, true);
+            const auto file_size = seg->get_file_size();
+            const auto mem_size  = seg->get_memory_size();
+            auto entry = ps3->mem.alloc(mem_size, 0, true);
             allocations.push_back(entry->vaddr);
             u8* ptr = ps3->mem.ram.getPtrPhys(entry->paddr);
             ps3->mem.markAsFastMem(entry->vaddr >> PAGE_SHIFT, ptr, true, true);
-            std::memcpy(ptr, seg->get_data(), seg->get_file_size());
+            std::memcpy(ptr, seg->get_data(), file_size);
             // Set the remaining memory to 0
-            std::memset(ptr + seg->get_file_size(), 0, seg->get_memory_size() - seg->get_file_size());
+            std::memset(ptr + file_size, 0, mem_size - file_size);
+            
+            lib_info.segs.push_back({ entry->vaddr, type, file_size, mem_size });
         }
     }
 
@@ -138,7 +144,15 @@ PRXLibraryInfo PRXLoader::load(const fs::path& path, PRXExportTable& exports) {
         start_func = 0;
     }
 
-    return { Helpers::readString(lib->name), path.filename().generic_string(), ps3->handle_manager.request(), lib->toc, prologue_func, epilogue_func, start_func, stop_func };
+    lib_info.name = Helpers::readString(lib->name);
+    lib_info.filename = path.filename().generic_string();
+    lib_info.id = ps3->handle_manager.request();
+    lib_info.toc = lib->toc;
+    lib_info.prologue_func = prologue_func;
+    lib_info.epilogue_func = epilogue_func;
+    lib_info.start_func = start_func;
+    lib_info.stop_func = stop_func;
+    return lib_info;
 }
 
 std::string PRXLoader::getSpecialFunctionName(const u32 nid) {

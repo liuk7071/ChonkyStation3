@@ -22,7 +22,7 @@ class PRXLoader {
 public:
     PRXLoader(PlayStation3* ps3) : ps3(ps3) {}
     PlayStation3* ps3;
-
+    
     struct PRXRelocation {
         BEField<u64> offs;
         BEField<u16> unk;
