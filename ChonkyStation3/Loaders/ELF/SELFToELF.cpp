@@ -1,6 +1,8 @@
 #include "SELFToELF.hpp"
 #include "PlayStation3.hpp"
 
+#include <memory>
+
 
 #ifdef _WIN32
 #define seek _fseeki64
@@ -82,20 +84,19 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
         log("Debug SELF offset : 0x%x\n", elf_offs);
         log("Debug SELF size   : %d\n", elf_size);
         
-        u8* buf = new u8[elf_size];
+        auto buf = std::make_unique<u8[]>(elf_size);
         seek(file, elf_offs, SEEK_SET);
-        std::fread(buf, elf_size, 1, file);
+        std::fread(buf.get(), elf_size, 1, file);
         
         FILE* out = std::fopen(out_path.generic_string().c_str(), "wb");
         if (!out) {
             Helpers::panic("SELFToELF: Could not open %s for writing\n", out_path.generic_string().c_str());
         }
-        std::fwrite(buf, elf_size, 1, out);
+        std::fwrite(buf.get(), elf_size, 1, out);
         
         log("Done\n");
         std::fclose(file);
         std::fclose(out);
-        delete[] buf;
         return 0;
     }
     
@@ -201,20 +202,20 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
     
     // Read Encryption Root Header data
     constexpr auto enc_root_hdr_size = sizeof(CFEncryptionRootHeader);
-    u8 encryption_root_header_data[enc_root_hdr_size];
+    auto encryption_root_header_data = std::make_unique<u8[]>(enc_root_hdr_size);
     seek(file, sizeof(CFHeader) + header.ext_header_size, SEEK_SET);
-    std::fread(encryption_root_header_data, enc_root_hdr_size, 1, file);
+    std::fread(encryption_root_header_data.get(), enc_root_hdr_size, 1, file);
     
     // First round of decryption - NPDRM layer
     std::memset(iv, 0, 16);
-    u8 encryption_root_header_no_npdrm[enc_root_hdr_size];
-    if (int e = plusaes::decrypt_cbc(encryption_root_header_data, enc_root_hdr_size, klic, 16, &iv, encryption_root_header_no_npdrm, enc_root_hdr_size, nullptr)) {
+    auto encryption_root_header_no_npdrm = std::make_unique<u8[]>(enc_root_hdr_size);
+    if (int e = plusaes::decrypt_cbc(encryption_root_header_data.get(), enc_root_hdr_size, klic, 16, &iv, encryption_root_header_no_npdrm.get(), enc_root_hdr_size, nullptr)) {
         Helpers::panic("AES error (%d)\n", e);
     }
 
     // Second round of decryption - AES256CBC with the system SELF key
     CFEncryptionRootHeader encryption_root_header;
-    plusaes::decrypt_cbc(encryption_root_header_no_npdrm, enc_root_hdr_size, erk, 32, &riv, (u8*)&encryption_root_header, enc_root_hdr_size, nullptr);
+    plusaes::decrypt_cbc(encryption_root_header_no_npdrm.get(), enc_root_hdr_size, erk, 32, &riv, (u8*)&encryption_root_header, enc_root_hdr_size, nullptr);
     
     log("Decrypted Encryption Root Header\n");
     log("Key : ");
@@ -228,27 +229,27 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
     
     // Get the Certification Header and Segments, encrypted with the key from the Encryption Root Header via AES128CTR
     const auto cert_body_size = header.file_offset - (sizeof(CFHeader) + header.ext_header_size + sizeof(CFEncryptionRootHeader));
-    u8 cert_data[cert_body_size];
+    auto cert_data = std::make_unique<u8[]>(cert_body_size);
     
     seek(file, sizeof(CFHeader) + header.ext_header_size + sizeof(CFEncryptionRootHeader), SEEK_SET);
-    std::fread(cert_data, cert_body_size, 1, file);
+    std::fread(cert_data.get(), cert_body_size, 1, file);
     std::memcpy(iv, encryption_root_header.iv, 16);
-    plusaes::crypt_ctr(cert_data, cert_body_size, encryption_root_header.key, 16, &iv);
+    plusaes::crypt_ctr(cert_data.get(), cert_body_size, encryption_root_header.key, 16, &iv);
     
     CertificationHeader certification_header;
-    std::memcpy((u8*)&certification_header, cert_data, sizeof(CertificationHeader));
+    std::memcpy((u8*)&certification_header, cert_data.get(), sizeof(CertificationHeader));
     log("Decrypted Certification Header\n");
     log("Number of certification segments   : %d\n", (u32)certification_header.cert_entry_num);
     log("Number of certification attributes : %d\n", (u32)certification_header.attr_entry_num);
     
     const u32 n_certs = certification_header.cert_entry_num;
-    SegmentCertificationHeader segment_headers[n_certs];
-    std::memcpy((u8*)segment_headers, cert_data + sizeof(CertificationHeader), sizeof(SegmentCertificationHeader) * n_certs);
+    auto segment_headers = std::make_unique<SegmentCertificationHeader[]>(n_certs);
+    std::memcpy((u8*)segment_headers.get(), cert_data.get() + sizeof(CertificationHeader), sizeof(SegmentCertificationHeader) * n_certs);
     
     // Copy keys
     const u32 n_keys = certification_header.attr_entry_num * 16;
-    u8 keys[n_keys];
-    std::memcpy(keys, cert_data + sizeof(CertificationHeader) + sizeof(SegmentCertificationHeader) * n_certs, n_keys);
+    auto keys = std::make_unique<u8[]>(n_keys);
+    std::memcpy(keys.get(), cert_data.get() + sizeof(CertificationHeader) + sizeof(SegmentCertificationHeader) * n_certs, n_keys);
     
     // Load and write ELF header to file
     Elf64_Ehdr ehdr;
@@ -260,22 +261,22 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
     
     // Load and write program headers to file
     const int n_phdr = ehdr.e_phnum;
-    Elf64_Phdr phdrs[n_phdr];
+    auto phdrs = std::make_unique<Elf64_Phdr[]>(n_phdr);
     seek(file, ext_header.phdr_offset, SEEK_SET);
-    std::fread((u8*)&phdrs, sizeof(Elf64_Phdr) * n_phdr, 1, file);
+    std::fread((u8*)phdrs.get(), sizeof(Elf64_Phdr) * n_phdr, 1, file);
     seek(out, ehdr.e_shoff, SEEK_SET);
-    std::fwrite((u8*)&phdrs, sizeof(Elf64_Phdr) * n_phdr, 1, out);
+    std::fwrite((u8*)phdrs.get(), sizeof(Elf64_Phdr) * n_phdr, 1, out);
     for (int i = 0; i < n_phdr; i++) {
         log("Program header %d: vaddr: 0x%08x, size: %d\n", i, (u32)phdrs[i].p_vaddr, (u32)phdrs[i].p_memsz);
     }
     
     // Load and write section headers to file
     const int n_shdr = ehdr.e_shnum;
-    Elf64_Shdr shdrs[n_shdr];
+    auto shdrs = std::make_unique<Elf64_Shdr[]>(n_shdr);
     if (n_shdr) {
         seek(file, ext_header.shdr_offset, SEEK_SET);
-        std::fread((u8*)&shdrs, sizeof(Elf64_Shdr) * n_shdr, 1, file);
-        std::fwrite((u8*)&shdrs, sizeof(Elf64_Shdr) * n_shdr, 1, out);
+        std::fread((u8*)shdrs.get(), sizeof(Elf64_Shdr) * n_shdr, 1, file);
+        std::fwrite((u8*)shdrs.get(), sizeof(Elf64_Shdr) * n_shdr, 1, out);
     }
 
     // Decrypt Certification Segment data
@@ -302,20 +303,19 @@ int SELFToELF::makeELF(const fs::path& path, const fs::path& out_path) {
             Helpers::debugAssert(seg.segment_id < n_phdr, "SELFToELF: segment id is out of bounds\n");
             
             // Load encrypted data
-            u8* data = new u8[seg.segment_size];
+            auto data = std::make_unique<u8[]>(seg.segment_size);
             seek(file, seg.segment_offset, SEEK_SET);
-            std::fread(data, seg.segment_size, 1, file);
+            std::fread(data.get(), seg.segment_size, 1, file);
             
             // Decrypt it via AES128CTR
             u8 key[16];
-            std::memcpy(key, keys + seg.key_idx * 16, 16);
-            std::memcpy(iv,  keys + seg.iv_idx  * 16, 16);
-            plusaes::crypt_ctr(data, seg.segment_size, key, 16, &iv);
+            std::memcpy(key, keys.get() + seg.key_idx * 16, 16);
+            std::memcpy(iv,  keys.get() + seg.iv_idx  * 16, 16);
+            plusaes::crypt_ctr(data.get(), seg.segment_size, key, 16, &iv);
             
             // Write decrypted data to file
             seek(out, phdrs[seg.segment_id].p_offset, SEEK_SET);
-            std::fwrite(data, seg.segment_size, 1, out);
-            delete[] data;
+            std::fwrite(data.get(), seg.segment_size, 1, out);
         }
     }
     

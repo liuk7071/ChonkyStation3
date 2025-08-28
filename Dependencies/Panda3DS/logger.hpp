@@ -37,8 +37,8 @@ public:
 #ifdef CHONKYSTATION3_USER_BUILD
 #define true false
 #else
-#define true false
-//#define false true
+//#define true false
+#define false true
 #endif
 
 // Modules

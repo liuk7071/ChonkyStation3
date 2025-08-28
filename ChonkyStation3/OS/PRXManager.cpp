@@ -22,6 +22,7 @@ PRXManager::PRXManager(PlayStation3* ps3) : ps3(ps3) {
         { "cellL10n",           "libl10n.prx" },
         { "cellFiber",          "libfiber.prx" },
         { "cellSail",           "libsail.prx" },
+        //{ "cellGcmSys",         "libgcm_sys.prx" },
     };
 }
 
