@@ -398,6 +398,9 @@ void SPUThread::doCmd(u32 cmd) {
     case PUTLLUC: {
         log("PUTLLUC @ 0x%08x ", ps3->spu->state.pc);
         std::memcpy(ps3->mem.getPtr(eal), &ls[lsa & 0x3ffff], 128);
+        atomic_stat = 0;
+        atomic_stat |= 2;   // PUTLLUC command completed
+        reservation.addr = 0;
         break;
     }
 
@@ -414,7 +417,7 @@ void SPUThread::doCmd(u32 cmd) {
 
         // Update atomic stat
         atomic_stat = 0;
-        atomic_stat |= !success;    // Bit 0 is set if the reservation was lost 
+        atomic_stat |= !success;    // Bit 0 is set if the reservation was lost
 
         if (success) logNoPrefix("Success\n");
         else logNoPrefix("Failure\n");
@@ -424,8 +427,8 @@ void SPUThread::doCmd(u32 cmd) {
     case GETLLAR: {
         log("GETLLAR @ 0x%08x\n", ps3->spu->state.pc);
         
-        // Did we already have a reservation?
-        if (reservation.addr) {
+        // Did we already have a reservation, and is it from the one we are reserving now?
+        if (reservation.addr && (reservation.addr != eal)) {
             event_stat.lr = true;
         }
         

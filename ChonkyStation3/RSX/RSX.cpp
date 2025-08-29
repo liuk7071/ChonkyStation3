@@ -84,39 +84,41 @@ u32 RSX::offsetAndLocationToAddress(u32 offset, u8 location) {
 
 void RSX::compileProgram() {
     RSXCache::CachedShader cached_shader;
-    // Check if our shaders were cached
+    // Hash the vertex and fragment shaders
     const u64 hash_vertex = cache.computeHash((u8*)&vertex_shader_data[vertex_shader_start_idx * 4], 512 * 4 - vertex_shader_start_idx * 4);
-    if (!cache.getShader(hash_vertex, cached_shader)) {
-        // Shader wasn't cached, compile it and add it to the cache
-        auto vertex_shader = vertex_shader_decompiler.decompile(vertex_shader_data, vertex_shader_start_idx);
-        OpenGL::Shader new_shader;
-        if(!new_shader.create(vertex_shader, OpenGL::ShaderType::Vertex))
-            Helpers::panic("Failed to create vertex shader object");
-        cache.cacheShader(hash_vertex, { new_shader });
-        vertex = new_shader;
-    }
-    else {
-        vertex = cached_shader.shader;
-    }
-
     const u64 hash_fragment = cache.computeHash(fragment_shader_program.getData(ps3->mem), fragment_shader_program.getSize(ps3->mem));
-    if (!cache.getShader(hash_fragment, cached_shader)) {
-        // Shader wasn't cached, compile it and add it to the cache
-        auto fragment_shader = fragment_shader_decompiler.decompile(fragment_shader_program);
-        OpenGL::Shader new_shader;
-        if(!new_shader.create(fragment_shader, OpenGL::ShaderType::Fragment))
-            Helpers::panic("Failed to create fragment shader object");;
-        cache.cacheShader(hash_fragment, { new_shader });
-        fragment = new_shader;
-    }
-    else {
-        fragment = cached_shader.shader;
-    }
 
-    // Check if our shader program was cached
+    // Check if our shader program was cached first
     const u64 hash_program = cache.computeProgramHash(hash_vertex, hash_fragment);
     if (!cache.getProgram(hash_program, program)) {
-        // Program wasn't cached, link it and add it to the cache
+        // Shader program wasn't cached, get vertex shader and fragment shader
+        if (!cache.getShader(hash_vertex, cached_shader)) {
+            // Shader wasn't cached, compile it and add it to the cache
+            auto vertex_shader = vertex_shader_decompiler.decompile(vertex_shader_data, vertex_shader_start_idx);
+            OpenGL::Shader new_shader;
+            if(!new_shader.create(vertex_shader, OpenGL::ShaderType::Vertex))
+                Helpers::panic("Failed to create vertex shader object");
+            cache.cacheShader(hash_vertex, { new_shader });
+            vertex = new_shader;
+        }
+        else {
+            vertex = cached_shader.shader;
+        }
+
+        if (!cache.getShader(hash_fragment, cached_shader)) {
+            // Shader wasn't cached, compile it and add it to the cache
+            auto fragment_shader = fragment_shader_decompiler.decompile(fragment_shader_program);
+            OpenGL::Shader new_shader;
+            if(!new_shader.create(fragment_shader, OpenGL::ShaderType::Fragment))
+                Helpers::panic("Failed to create fragment shader object");;
+            cache.cacheShader(hash_fragment, { new_shader });
+            fragment = new_shader;
+        }
+        else {
+            fragment = cached_shader.shader;
+        }
+        
+        // Link and cache the shader program
         OpenGL::Program new_program;
         if (!new_program.create({ vertex, fragment })) {
             //exit(0);
@@ -1550,6 +1552,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
     }
             
     case GCM_USER_COMMAND: {
+        log("User command\n");
         Helpers::panic("RSX: user command\n");
         break;
     }

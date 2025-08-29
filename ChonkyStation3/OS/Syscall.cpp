@@ -147,7 +147,9 @@ void Syscall::doSyscall(bool decrement_pc_if_module_call) {
     case 131:   ps3->ppu->state.gprs[3] = sys_event_queue_tryreceive();             break;
     case 133:   ps3->ppu->state.gprs[3] = sys_event_queue_drain();                  break;
     case 134:   ps3->ppu->state.gprs[3] = sys_event_port_create();                  break;
+    case 135:   todo("sys_event_port_destroy()");                                   break;
     case 136:   ps3->ppu->state.gprs[3] = sys_event_port_connect_local();           break;
+    case 137:   todo("sys_event_port_disconnect()");                                break;
     case 138:   ps3->ppu->state.gprs[3] = sys_event_port_send();                    break;
     case 141:   ps3->ppu->state.gprs[3] = sys_timer_usleep();                       break;
     case 142:   ps3->ppu->state.gprs[3] = sys_timer_sleep();                        break;

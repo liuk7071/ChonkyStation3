@@ -106,8 +106,10 @@ void ModuleManager::init() {
         { 0x055bd74d, { "cellGcmGetTiledPitchSize",                         std::bind(&CellGcmSys::cellGcmGetTiledPitchSize, &cellGcmSys) }},
         { 0x06edea9e, { "cellGcmSetUserHandler",                            std::bind(&ModuleManager::stub, this) } },
         { 0x0a862772, { "cellGcmSetQueueHandler",                           std::bind(&CellGcmSys::cellGcmSetQueueHandler, &cellGcmSys) } },
+        { 0x0b4b62d5, { "cellGcmSetPrepareFlip",                            std::bind(&CellGcmSys::cellGcmSetPrepareFlip, &cellGcmSys) } },
         { 0x0e6b0dae, { "cellGcmGetDisplayInfo",                            std::bind(&CellGcmSys::cellGcmGetDisplayInfo, &cellGcmSys) }},
         { 0x15bae46b, { "cellGcmInitBody",                                  std::bind(&CellGcmSys::cellGcmInitBody, &cellGcmSys) }},
+        //{ 0x1f61b3ff, { "cellGcmDumpGraphicsError",                         std::bind(&ModuleManager::stub, this) } },
         { 0x21397818, { " _cellGcmSetFlipCommand",                          std::bind(&CellGcmSys::_cellGcmSetFlipCommand, &cellGcmSys) }},
         { 0x21ac3697, { "cellGcmAddressToOffset",                           std::bind(&CellGcmSys::cellGcmAddressToOffset, &cellGcmSys) }},
         { 0x23ae55a3, { "cellGcmGetLastSecondVTime",                        std::bind(&CellGcmSys::cellGcmGetLastSecondVTime, &cellGcmSys) }},
@@ -356,6 +358,7 @@ void ModuleManager::init() {
         { 0x9851f805, { "sceNpScoreTerm",                                   std::bind(&ModuleManager::stub, this) }},
         { 0xa7bff757, { "sceNpManagerGetStatus",                            std::bind(&SceNp::sceNpManagerGetStatus, &sceNp) }},
         { 0xad218faf, { "sceNpDrmIsAvailable",                              std::bind(&ModuleManager::stub, this) }},
+        { 0xacb9ee8e, { "sceNpBasicUnregisterHandler",                      std::bind(&ModuleManager::stub, this) }},
         { 0xafef640d, { "sceNpBasicGetFriendListEntryCount",                std::bind(&ModuleManager::stub, this) }},
         { 0xb1e0718b, { "sceNpManagerGetAccountRegion",                     std::bind(&ModuleManager::stub, this) }},
         { 0xbcc09fe7, { "sceNpBasicRegisterHandler",                        std::bind(&ModuleManager::stub, this) }},
@@ -512,6 +515,7 @@ void ModuleManager::init() {
         { 0xe0998dbf, { "sys_prx_get_module_id_by_name",                    std::bind(&ModuleManager::stub, this) } },
 
         { 0xb48636c4, { "sys_net_show_ifconfig",                            std::bind(&ModuleManager::stub, this) } },
+        { 0xb68d5625, { "sys_net_finalize_network",                         std::bind(&ModuleManager::stub, this) } },
         { 0xfdb8f926, { "sys_net_free_thread_context",                      std::bind(&ModuleManager::stub, this) } },
         
         { 0xe75c40f2, { "sys_process_get_paramsfo",                         std::bind(&ModuleManager::stub, this) } },

@@ -99,6 +99,7 @@ public:
 
     u64 cellGcmGetTiledPitchSize();
     u64 cellGcmSetQueueHandler();
+    u64 cellGcmSetPrepareFlip();
     u64 cellGcmGetDisplayInfo();
     u64 cellGcmInitBody();
     u64 _cellGcmSetFlipCommand();

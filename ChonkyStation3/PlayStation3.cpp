@@ -174,9 +174,11 @@ void PlayStation3::step() {
     if (curr_block_cycles > reschedule_every_n_cycles) {
         curr_block_cycles = 0;
         thread_manager.reschedule();
-        if (rsx.hanged)  {
-            rsx.runCommandList();
-        }
+        spu_thread_manager.reschedule();
+        //if (rsx.hanged)  {
+            //module_manager.cellGcmSys.ctrl->get = module_manager.cellGcmSys.ctrl->get + 4;
+            //rsx.runCommandList();
+        //}
     }
 }
 

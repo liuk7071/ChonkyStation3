@@ -69,12 +69,13 @@ u64 Syscall::sys_prx_load_module() {
     
     // Decrypt the SPRX
     SELFToELF self = SELFToELF(ps3);
-    self.makeELF(host_path, host_prx_path);
+    int ret = self.makeELF(host_path, host_prx_path);
     
     // Load the library
     u32 id;
     ps3->prx_manager.loadModule(guest_prx_path, &id);
-    fs::remove(guest_prx_path);
+    if (ret == 0)
+        fs::remove(guest_prx_path);
     
     return id;
 }

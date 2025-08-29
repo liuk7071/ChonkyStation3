@@ -26,7 +26,7 @@ u64 Syscall::sys_spu_image_open() {
 u64 Syscall::sys_raw_spu_create() {
     const u32 id_ptr = ARG0;
     const u32 attr_ptr = ARG1;
-    log_sys_spu("sys_raw_spu_create(id_ptr: 0x%08x, attr_ptr: 0x%08x) STUBBED\n", id_ptr, attr_ptr);
+    log_sys_spu("sys_raw_spu_create(id_ptr: 0x%08x, attr_ptr: 0x%08x)\n", id_ptr, attr_ptr);
 
     // Find an available raw SPU index
     int idx;

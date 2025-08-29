@@ -22,6 +22,22 @@ u64 CellGcmSys::cellGcmSetQueueHandler() {
     return CELL_OK;
 }
 
+u64 CellGcmSys::cellGcmSetPrepareFlip() {
+    const u32 ctx_ptr = ARG0;
+    const u32 buf_id = ARG1;
+    log("cellGcmSetPrepareFlip(ctx_ptr: 0x%08x, buf_id: %d)\n", ctx_ptr, buf_id);
+    
+    CellGcmContextData* context = (CellGcmContextData*)ps3->mem.getPtr(ctx_ptr);
+    log("begin: 0x%08x, end: 0x%08x, current: 0x%08x\n", (u32)context->begin, (u32)context->end, (u32)context->current);
+
+    if (context->current + 8 >= context->end) cellGcmCallback();
+    ps3->mem.write<u32>(context->current, RSX::GCM_FLIP_COMMAND | (1 << 18));   // 1 is argc
+    ps3->mem.write<u32>(context->current + 4, buf_id);
+    context->current = context->current + 8;
+    
+    return CELL_OK;
+}
+
 u64 CellGcmSys::cellGcmGetDisplayInfo() {
     log("cellGcmGetDisplayInfo()\n");
     return buffer_info_addr;
@@ -111,9 +127,9 @@ u64 CellGcmSys::cellGcmInitBody() {
     thread->state.pc = vblank_thread_entry;
 
     // cellGcm writes some commands on init, simulate the FIFO state after their execution
-    ctx->current = ctx->begin + 0x3a0;
-    ctrl->get = 0x13a0;
-    ctrl->put = 0x13a0;
+    //ctx->current = ctx->begin + 0x3a0;
+    //ctrl->get = 0x13a0;
+    //ctrl->put = 0x13a0;
     
     log("Control register addr: 0x%08x\n", ctrl_addr);
     
@@ -193,11 +209,11 @@ bool CellGcmSys::isIoOffsMapped(u32 io) {
 }
 
 u64 CellGcmSys::_cellGcmSetFlipCommand() {
-    const u32 context_addr = ARG0;
+    const u32 ctx_ptr = ARG0;
     const u32 buf_id = ARG1;
-    log("_cellGcmSetFlipCommand(ctx_addr: 0x%08x, buf_id: %d)\n", context_addr, buf_id);
+    log("_cellGcmSetFlipCommand(ctx_ptr: 0x%08x, buf_id: %d)\n", ctx_ptr, buf_id);
 
-    CellGcmContextData* context = (CellGcmContextData*)ps3->mem.getPtr(context_addr);
+    CellGcmContextData* context = (CellGcmContextData*)ps3->mem.getPtr(ctx_ptr);
     log("begin: 0x%08x, end: 0x%08x, current: 0x%08x\n", (u32)context->begin, (u32)context->end, (u32)context->current);
 
     if (context->current + 8 >= context->end) cellGcmCallback();
@@ -538,11 +554,11 @@ u64 CellGcmSys::cellGcmUnmapIoAddress() {
 }
 
 u64 CellGcmSys::cellGcmSetFlip() {
-    const u32 context_addr = ARG0;
+    const u32 ctx_ptr = ARG0;
     const u32 buf_id = ARG1;
-    log("cellGcmSetFlip(ctx_addr: 0x%08x, buf_id: %d)\n", context_addr, buf_id);
+    log("cellGcmSetFlip(ctx_ptr: 0x%08x, buf_id: %d)\n", ctx_ptr, buf_id);
 
-    CellGcmContextData* context = (CellGcmContextData*)ps3->mem.getPtr(context_addr);
+    CellGcmContextData* context = (CellGcmContextData*)ps3->mem.getPtr(ctx_ptr);
     if (context->current + 8 >= context->end) cellGcmCallback();
     ps3->mem.write<u32>(context->current, RSX::GCM_FLIP_COMMAND | (1 << 18));   // 1 is argc
     ps3->mem.write<u32>(context->current + 4, buf_id);
