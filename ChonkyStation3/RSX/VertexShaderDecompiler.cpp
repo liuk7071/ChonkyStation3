@@ -100,7 +100,11 @@ uniform ivec2 surface_clip;
             break;
         }
         case RSXVertex::VECTOR::SLT: {
-            decompiled_src = std::format("lessThan({}, {})", source(src0, instr), source(src1, instr));
+            decompiled_src = std::format("vec4(lessThan({}, {}))", source(src0, instr), source(src1, instr));
+            break;
+        }
+        case RSXVertex::VECTOR::SGE: {
+            decompiled_src = std::format("vec4(greaterThanEqual({}, {}))", source(src0, instr), source(src1, instr));
             break;
         }
         case RSXVertex::VECTOR::ARL: {
@@ -115,8 +119,20 @@ uniform ivec2 surface_clip;
             decompiled_src = std::format("floor({})", source(src0, instr));
             break;
         }
+        case RSXVertex::VECTOR::SEQ: {
+            decompiled_src = std::format("vec4(equal({}, {}))", source(src0, instr), source(src1, instr));
+            break;
+        }
         case RSXVertex::VECTOR::SGT: {
-            decompiled_src = std::format("greaterThan({}, {})", source(src0, instr), source(src1, instr));
+            decompiled_src = std::format("vec4(greaterThan({}, {}))", source(src0, instr), source(src1, instr));
+            break;
+        }
+        case RSXVertex::VECTOR::SLE: {
+            decompiled_src = std::format("vec4(lessThanEqual({}, {}))", source(src0, instr), source(src1, instr));
+            break;
+        }
+        case RSXVertex::VECTOR::SNE: {
+            decompiled_src = std::format("vec4(notEqual({}, {}))", source(src0, instr), source(src1, instr));
             break;
         }
 
@@ -195,6 +211,8 @@ uniform ivec2 surface_clip;
         }
                 
         default:
+            if (instr->w3.end) break;
+            continue;
             Helpers::panic("Unimplemented vertex scalar instruction 0x%02x\n", (u8)instr->w1.scalar_opc);
         }
                 

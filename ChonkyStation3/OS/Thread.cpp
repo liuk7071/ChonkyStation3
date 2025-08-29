@@ -10,7 +10,7 @@ Thread::Thread(u64 entry, u64 stack_size, u64 arg, s32 prio, const u8* name, u32
     this->prio = prio;
 
     // TODO: stack size should also be aligned to 0x1000 byte boundary
-    if (stack_size < DEFAULT_STACK_SIZE) stack_size = DEFAULT_STACK_SIZE;
+    if (stack_size < 0x1000) stack_size = 0x1000;
 
     stack = mgr->allocateStack(stack_size);
     this->stack_size = stack_size;

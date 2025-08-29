@@ -82,6 +82,7 @@ public:
         SPU_WrOutMbox       = 28,
         SPU_RdInMbox        = 29,
         SPU_WrOutIntrMbox   = 30,
+        SPU_Set_Bkmk_Tag    = 69,   // Performance monitor stuff, does nothing on retail consoles (?)
     };
 
     enum MFC_Channel: u32 {

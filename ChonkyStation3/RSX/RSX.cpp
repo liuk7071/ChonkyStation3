@@ -97,7 +97,7 @@ void RSX::compileProgram() {
             auto vertex_shader = vertex_shader_decompiler.decompile(vertex_shader_data, vertex_shader_start_idx);
             OpenGL::Shader new_shader;
             if(!new_shader.create(vertex_shader, OpenGL::ShaderType::Vertex))
-                Helpers::panic("Failed to create vertex shader object");
+                Helpers::panic("%s\nFailed to create vertex shader object", vertex_shader.c_str());
             cache.cacheShader(hash_vertex, { new_shader });
             vertex = new_shader;
         }
@@ -110,7 +110,7 @@ void RSX::compileProgram() {
             auto fragment_shader = fragment_shader_decompiler.decompile(fragment_shader_program);
             OpenGL::Shader new_shader;
             if(!new_shader.create(fragment_shader, OpenGL::ShaderType::Fragment))
-                Helpers::panic("Failed to create fragment shader object");;
+                Helpers::panic("%s\nFailed to create fragment shader object", fragment_shader.c_str());
             cache.cacheShader(hash_fragment, { new_shader });
             fragment = new_shader;
         }

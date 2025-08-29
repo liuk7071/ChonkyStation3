@@ -172,6 +172,7 @@ std::string SPUThread::channelToString(u32 ch) {
     case SPU_WrOutMbox:         return "SPU_WrOutMbox";
     case SPU_RdInMbox:          return "SPU_RdInMbox";
     case SPU_WrOutIntrMbox:     return "SPU_WrOutIntrMbox";
+    case SPU_Set_Bkmk_Tag:      return "SPU_Set_Bkmk_Tag";
 
     case MFC_WrMSSyncReq:       return "MFC_WrMSSyncReq";
     case MFC_RdTagMask:         return "MFC_RdTagMask";
@@ -256,7 +257,6 @@ void SPUThread::writeChannel(u32 ch, u32 val) {
     log("%s = 0x%08x\n", channelToString(ch).c_str(), val);
 
     switch (ch) {
-     
     case SPU_WrEventMask:   event_mask.raw  = val;      break;
     case SPU_WrEventAck:    event_stat.raw &= ~val;     break;
     case SPU_WrDec:         decrementer = val;          break;
@@ -274,6 +274,11 @@ void SPUThread::writeChannel(u32 ch, u32 val) {
     case SPU_WrOutIntrMbox: {
         u32 spup = val >> 24;
         if (spup < 64) {
+            /*if (ports[spup] == -1) {
+                // Write response to in mbox
+                in_mbox.push(CELL_OK);
+                break;
+            }*/
             Helpers::debugAssert(ports[spup] != -1, "sys_spu_thread_send_event: port %d was not connected\n", spup);
             Helpers::debugAssert(out_mbox.size(), "sys_spu_thread_send_event: out_mbox is empty\n");
             const u64 data0 = (val & 0xffffff) | ((u64)spup << 32);
@@ -334,6 +339,7 @@ void SPUThread::writeChannel(u32 ch, u32 val) {
         }
         break;
     }
+    case SPU_Set_Bkmk_Tag:  break;
 
     case MFC_LSA:           lsa         = val;  break;
     case MFC_EAH:           eah         = val;  break;

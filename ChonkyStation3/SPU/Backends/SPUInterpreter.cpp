@@ -963,6 +963,13 @@ void SPUInterpreter::mpyhh(const SPUInstruction& instr) {
     state.gprs[instr.rt0].w[3] = (s16)(state.gprs[instr.ra].w[3] >> 16) * (s16)(state.gprs[instr.rb].w[3] >> 16);
 }
 
+void SPUInterpreter::mpys(const SPUInstruction& instr) {
+    state.gprs[instr.rt0].w[0] = ((s32)(s16)(state.gprs[instr.ra].w[0] & 0xffff) * (s32)(s16)(state.gprs[instr.rb].w[0] & 0xffff)) >> 16;
+    state.gprs[instr.rt0].w[1] = ((s32)(s16)(state.gprs[instr.ra].w[1] & 0xffff) * (s32)(s16)(state.gprs[instr.rb].w[1] & 0xffff)) >> 16;
+    state.gprs[instr.rt0].w[2] = ((s32)(s16)(state.gprs[instr.ra].w[2] & 0xffff) * (s32)(s16)(state.gprs[instr.rb].w[2] & 0xffff)) >> 16;
+    state.gprs[instr.rt0].w[3] = ((s32)(s16)(state.gprs[instr.ra].w[3] & 0xffff) * (s32)(s16)(state.gprs[instr.rb].w[3] & 0xffff)) >> 16;
+}
+
 void SPUInterpreter::ceqh(const SPUInstruction& instr) {
     for (int i = 0; i < 8; i++)
         state.gprs[instr.rt0].h[i] = (state.gprs[instr.ra].h[i] == state.gprs[instr.rb].h[i]) ? 0xffff : 0;
@@ -1493,7 +1500,7 @@ UNIMPL_INSTR(dfceq);
 //UNIMPL_INSTR(mpy);
 //UNIMPL_INSTR(mpyh);
 //UNIMPL_INSTR(mpyhh);
-UNIMPL_INSTR(mpys);
+//UNIMPL_INSTR(mpys);
 //UNIMPL_INSTR(ceqh);
 UNIMPL_INSTR(fcmeq);
 UNIMPL_INSTR(dfcmeq);

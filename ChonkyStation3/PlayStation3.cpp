@@ -95,7 +95,7 @@ int PlayStation3::init() {
     elf_path_encrypted += '\0';
 
     Helpers::debugAssert(!proc_param.ppc_seg, "Unhandled non-zero ppc_seg\n");
-    Thread* main_thread = thread_manager.createThread(entry, proc_param.primary_stacksize, 0, proc_param.primary_prio, (const u8*)"main", elf.tls_vaddr, elf.tls_filesize, elf.tls_memsize, true, false, elf_path_encrypted);
+    Thread* main_thread = thread_manager.createThread(entry, std::min<u64>(proc_param.primary_stacksize, DEFAULT_STACK_SIZE), 0, proc_param.primary_prio, (const u8*)"main", elf.tls_vaddr, elf.tls_filesize, elf.tls_memsize, true, false, elf_path_encrypted);
     ppu->state.gprs[11] = entry;
     ppu->state.gprs[12] = proc_param.malloc_pagesize ? proc_param.malloc_pagesize : 0x100000;
 

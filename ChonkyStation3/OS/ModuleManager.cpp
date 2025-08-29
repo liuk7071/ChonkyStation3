@@ -355,6 +355,7 @@ void ModuleManager::init() {
         { 0x5f2d9257, { "sceNpLookupInit",                                  std::bind(&ModuleManager::stub, this) }},
         { 0x6ee62ed2, { "sceNpManagerGetContentRatingFlag",                 std::bind(&ModuleManager::stub, this) }},
         { 0x73931bd0, { "sceNpBasicGetBlockListEntryCount",                 std::bind(&ModuleManager::stub, this) }},
+        { 0x9458f464, { "sceNpCustomMenuRegisterExceptionList",             std::bind(&ModuleManager::stub, this) }},
         { 0x9851f805, { "sceNpScoreTerm",                                   std::bind(&ModuleManager::stub, this) }},
         { 0xa7bff757, { "sceNpManagerGetStatus",                            std::bind(&SceNp::sceNpManagerGetStatus, &sceNp) }},
         { 0xad218faf, { "sceNpDrmIsAvailable",                              std::bind(&ModuleManager::stub, this) }},
@@ -369,6 +370,7 @@ void ModuleManager::init() {
         { 0xe7dcd3b4, { "sceNpManagerRegisterCallback",                     std::bind(&ModuleManager::stub, this) }},
         { 0xeb7a3d84, { "sceNpManagerGetChatRestrictionFlag",               std::bind(&ModuleManager::stub, this) }},
         { 0xf042b14f, { "sceNpDrmIsAvailable2",                             std::bind(&ModuleManager::stub, this) }},
+        { 0xf9732ac8, { "sceNpCustomMenuActionSetActivation",               std::bind(&ModuleManager::stub, this) }},
         { 0xfe37a7f4, { "sceNpManagerGetNpId",                              std::bind(&SceNp::sceNpManagerGetNpId, &sceNp) }},
         
         { 0x215b0d75, { "sceNpMatching2SetRoomDataExternal",                std::bind(&ModuleManager::stub, this) }},

@@ -51,7 +51,11 @@ uniform bool flip_tex;
             main += "// IFE";
             continue;
         }
-
+        if (opc == RSXFragment::LOOP) {
+            main += "// LOOP";
+            continue;
+        }
+        
         int num_lanes;
         const auto mask_str = mask(instr, num_lanes);
         const auto type = getType(num_lanes);
@@ -93,6 +97,10 @@ uniform bool flip_tex;
         }
         case RSXFragment::SLT: {
             decompiled_src = std::format("vec4(lessThan({}, {}))", source(instr, 0), source(instr, 1));
+            break;
+        }
+        case RSXFragment::SGE: {
+            decompiled_src = std::format("vec4(greaterThanEqual({}, {}))", source(instr, 0), source(instr, 1));
             break;
         }
         case RSXFragment::SLE: {
