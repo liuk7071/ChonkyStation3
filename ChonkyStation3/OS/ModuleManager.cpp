@@ -164,6 +164,7 @@ void ModuleManager::init() {
         { 0xa322db75, { "cellVideoOutGetResolutionAvailability",            std::bind(&CellVideoOut::cellVideoOutGetResolutionAvailability, &cellVideoOut) }},
         { 0xc7020f62, { "cellVideoOutSetGamma",                             std::bind(&ModuleManager::stub, this) }},
         { 0xe558748d, { "cellVideoOutGetResolution",                        std::bind(&CellVideoOut::cellVideoOutGetResolution, &cellVideoOut) }},
+        { 0xfaa275a4, { "cellVideoOutGetScreenSize",                        std::bind(&CellVideoOut::cellVideoOutGetScreenSize, &cellVideoOut) }},
 
         { 0x02ff3c1b, { "cellSysutilUnregisterCallback",                    std::bind(&CellSysutil::cellSysutilUnregisterCallback, &cellSysutil) }},
         { 0x189a74da, { "cellSysutilCheckCallback",                         std::bind(&CellSysutil::cellSysutilCheckCallback, &cellSysutil) }},
@@ -482,6 +483,7 @@ void ModuleManager::init() {
         { 0xc7cf1182, { "cellVoiceInit",                                    std::bind(&ModuleManager::stub, this) } },
 
         { 0x5c832bd7, { "cellUsbdSetThreadPriority2",                       std::bind(&ModuleManager::stub, this) } },
+        { 0xbd554bcb, { "cellUsbdRegisterExtraLdd2",                        std::bind(&ModuleManager::stub, this) } },
         { 0xd0e766fe, { "cellUsbdInit",                                     std::bind(&ModuleManager::stub, this) } },
 
         { 0x1650aea4, { "cellSslEnd",                                       std::bind(&ModuleManager::stub, this) } },

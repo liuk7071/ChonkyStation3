@@ -4,10 +4,13 @@
 
 RSX::RSX(PlayStation3* ps3) : ps3(ps3), gcm(ps3->module_manager.cellGcmSys), fragment_shader_decompiler(ps3) {
     std::memset(constants, 0, 512 * 4);
-    last_tex.addr = 0;
-    last_tex.format = 0;
-    last_tex.width = 0;
-    last_tex.height = 0;
+    for (auto& last_tex : last_textures) {
+        last_tex.addr = 0;
+        last_tex.format = 0;
+        last_tex.width = 0;
+        last_tex.height = 0;
+    }
+    for (auto& should_flip_tex : should_flip_textures) should_flip_tex = false;
     vertex_array.bindings.resize(16);
 }
 
@@ -127,8 +130,10 @@ void RSX::compileProgram() {
         program.use();
 
         // Texture samplers
-        const int loc = glGetUniformLocation(program.handle(), "tex");
-        glUniform1i(loc, 0);
+        for (int i = 0; i < 16; i++) {
+            const int loc = glGetUniformLocation(program.handle(), std::format("tex{:d}", i).c_str());
+            glUniform1i(loc, i);
+        }
         
         // Vertex constants uniform buffer
         const int block_idx = glGetUniformBlockIndex(program.handle(), "VertexConstants");
@@ -198,6 +203,7 @@ void RSX::getVertices(u32 n_vertices, std::vector<u8>& vtx_buf, u32 start) {
         const u32 offs = binding.offset;
         const u32 offs_in_buf = offs - base;
         const auto size = binding.sizeOfComponent();
+        if (offs_in_buf > 0x30000000) continue;
 
         // offs_in_buf + i * binding.stride + j * size
         // - offs_in_buf    : offset of the first attribute of this binding relative to the base of the vertex array
@@ -270,17 +276,12 @@ void RSX::uploadFragmentUniforms() {
     }
     fragment_uniforms.clear();
 
-    glUniform1i(glGetUniformLocation(program.handle(), "flip_tex"), should_flip_tex ? GL_TRUE : GL_FALSE);
+    for (int i = 0; i < 16; i++) {
+        glUniform1i(glGetUniformLocation(program.handle(), std::format("flip_tex{:d}", i).c_str()), should_flip_textures[i] ? GL_TRUE : GL_FALSE);
+    }
 }
 
 void RSX::uploadTexture() {
-    // Don't do anything if the current texture is the same as the last one
-    // TODO: This will break if a game uploads a different texture but with the same format, width and height to the same address as the previous texture.
-    // I'm unsure how common that is. Probably make this toggleable in the future in case some games break
-    if (texture == last_tex) {
-       return;
-    }
-
     auto get_bytes_per_pixel = [this](u32 raw_fmt) -> u32 {
         switch (raw_fmt) {
         case CELL_GCM_TEXTURE_B8:       return 1;
@@ -290,14 +291,15 @@ void RSX::uploadTexture() {
         }
     };
     
-    auto get_pitch = [this, get_bytes_per_pixel](u32 raw_fmt) -> u32 {
-        return tex_pitch / get_bytes_per_pixel(raw_fmt);
+    auto get_pitch = [this, get_bytes_per_pixel](Texture& texture, u32 raw_fmt) -> u32 {
+        return texture.tex_pitch / get_bytes_per_pixel(raw_fmt);
     };
     
-    auto swizzle = [this]() {
+    auto swizzle = [this](Texture& texture, bool should_flip_tex) {
         // should_flip_tex == framebuffer texture
         // We don't reverse the swizzling because the framebuffer textures are written in the right order
         const bool rev = getRawTextureFormat(texture.format) == CELL_GCM_TEXTURE_A8R8G8B8 && !should_flip_tex;
+        const auto control1 = texture.control1;
         tex_swizzle_a = swizzle_map[rev ? 3 - (control1 & 3) : (control1 & 3)];
         tex_swizzle_r = swizzle_map[rev ? 3 - ((control1 >> 2) & 3) : ((control1 >> 2) & 3)];
         tex_swizzle_g = swizzle_map[rev ? 3 - ((control1 >> 4) & 3) : ((control1 >> 4) & 3)];
@@ -316,74 +318,88 @@ void RSX::uploadTexture() {
         tex_swizzle_b = GL_BLUE;
     };
 
-    OpenGL::Texture cached_texture;
+    for (int i = 0; i < 16; i++) {
+        auto& texture = textures[i];
+        if (!texture.addr) continue;
     
-    // Check if the texture is a framebuffer
-    if (cache.getFramebuffer(texture.addr, cached_texture)) {
-        glActiveTexture(GL_TEXTURE0 + 0);
-        glBindTexture(GL_TEXTURE_2D, cached_texture.m_handle);
-        last_tex = texture;
-
-        // We flip framebuffer textures because OpenGL renders to them upside down
-        should_flip_tex = true;
+        auto& last_tex = last_textures[i];
+        bool& should_flip_tex = should_flip_textures[i];
         
-        swizzle();
-        return;
-    }
-
-    should_flip_tex = false;
-
-    // Texture cache
-    const u64 hash = cache.computeTextureHash(ps3->mem.getPtr(texture.addr), texture.width, texture.height, 4);    // TODO: don't hardcode
-    if (!cache.getTexture(hash, cached_texture)) {
-        const auto raw_fmt = getRawTextureFormat(texture.format);
-        const auto fmt = getTexturePixelFormat(texture.format);
-        const auto internal = getTextureInternalFormat(texture.format);
-        const auto type = getTextureDataType(texture.format);
-
-        glGenTextures(1, &cached_texture.m_handle);
-        glBindTexture(GL_TEXTURE_2D, cached_texture.m_handle);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glActiveTexture(GL_TEXTURE0 + 0);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-        
-        if (raw_fmt == CELL_GCM_TEXTURE_R5G6B5) {
-            glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
+        // Don't do anything if the current texture is the same as the last one
+        // TODO: This will break if a game uploads a different texture but with the same format, width and height to the same address as the previous texture.
+        // I'm unsure how common that is. Probably make this toggleable in the future in case some games break
+        if (texture == last_tex) {
+           continue;
         }
         
-        if (!isCompressedFormat(texture.format)) {
-            u8* tex_ptr = ps3->mem.getPtr(texture.addr);
-            u8* unswizzled_tex = nullptr;
-            // Handle swizzling
-            if ((texture.format & CELL_GCM_TEXTURE_LN) == CELL_GCM_TEXTURE_SZ) {
-                const u32 pixel_size = get_bytes_per_pixel(raw_fmt);
-                unswizzled_tex = new u8[texture.width * texture.height * pixel_size];
-                swizzleTexture(tex_ptr, unswizzled_tex, texture.width, texture.height, pixel_size);
-            } else {
-                glPixelStorei(GL_UNPACK_ROW_LENGTH, get_pitch(raw_fmt));
+        OpenGL::Texture cached_texture;
+        // Check if the texture is a framebuffer
+        if (cache.getFramebuffer(texture.addr, cached_texture)) {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, cached_texture.m_handle);
+            last_tex = texture;
+            
+            // We flip framebuffer textures because OpenGL renders to them upside down
+            should_flip_tex = true;
+            
+            swizzle(texture, should_flip_tex);
+            continue;
+        }
+        
+        should_flip_tex = false;
+        
+        // Texture cache
+        const u64 hash = cache.computeTextureHash(ps3->mem.getPtr(texture.addr), texture.width, texture.height, 4);    // TODO: don't hardcode
+        if (!cache.getTexture(hash, cached_texture)) {
+            const auto raw_fmt = getRawTextureFormat(texture.format);
+            const auto fmt = getTexturePixelFormat(texture.format);
+            const auto internal = getTextureInternalFormat(texture.format);
+            const auto type = getTextureDataType(texture.format);
+            
+            glGenTextures(1, &cached_texture.m_handle);
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, cached_texture.m_handle);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+            
+            if (raw_fmt == CELL_GCM_TEXTURE_R5G6B5) {
+                glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_TRUE);
             }
-
-            glTexImage2D(GL_TEXTURE_2D, 0, internal, texture.width, texture.height, 0, fmt, type, (void*)(!unswizzled_tex ? tex_ptr : unswizzled_tex));
-            //checkGLError();
-
-            delete[] unswizzled_tex;
+            
+            if (!isCompressedFormat(texture.format)) {
+                u8* tex_ptr = ps3->mem.getPtr(texture.addr);
+                u8* unswizzled_tex = nullptr;
+                // Handle swizzling
+                if ((texture.format & CELL_GCM_TEXTURE_LN) == CELL_GCM_TEXTURE_SZ) {
+                    const u32 pixel_size = get_bytes_per_pixel(raw_fmt);
+                    unswizzled_tex = new u8[texture.width * texture.height * pixel_size];
+                    swizzleTexture(tex_ptr, unswizzled_tex, texture.width, texture.height, pixel_size);
+                } else {
+                    glPixelStorei(GL_UNPACK_ROW_LENGTH, get_pitch(texture, raw_fmt));
+                }
+                
+                glTexImage2D(GL_TEXTURE_2D, 0, internal, texture.width, texture.height, 0, fmt, type, (void*)(!unswizzled_tex ? tex_ptr : unswizzled_tex));
+                //checkGLError();
+                
+                delete[] unswizzled_tex;
+            }
+            else {
+                glCompressedTexImage2D(GL_TEXTURE_2D, 0, internal, texture.width, texture.height, 0, getCompressedTextureSize(texture.format, texture.width, texture.height), (void*)ps3->mem.getPtr(texture.addr));
+            }
+            cache.cacheTexture(hash, cached_texture);
+            //lodepng::encode(std::format("./{:08x}.png", texture.addr).c_str(), ps3->mem.getPtr(texture.addr), texture.width, texture.height);
         }
-        else {
-            glCompressedTexImage2D(GL_TEXTURE_2D, 0, internal, texture.width, texture.height, 0, getCompressedTextureSize(texture.format, texture.width, texture.height), (void*)ps3->mem.getPtr(texture.addr));
-        }
-        cache.cacheTexture(hash, cached_texture);
-        //lodepng::encode(std::format("./{:08x}.png", texture.addr).c_str(), ps3->mem.getPtr(texture.addr), texture.width, texture.height);
+        glActiveTexture(GL_TEXTURE0 + i);
+        glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
+        
+        glBindTexture(GL_TEXTURE_2D, cached_texture.m_handle);
+        swizzle(texture, should_flip_tex);
+        
+        last_tex = texture;
     }
-    glActiveTexture(GL_TEXTURE0 + 0);
-    glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
-    
-    glBindTexture(GL_TEXTURE_2D, cached_texture.m_handle);
-    swizzle();
-
-    last_tex = texture;
 }
 
 void RSX::swizzleTexture(u8* src, u8* dst, u32 width, u32 height, u32 pixel_size) {
@@ -999,6 +1015,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
     case NV4097_SET_BEGIN_END: {
         const u32 prim = args[0];
         log("Primitive: 0x%0x\n", prim);
+        has_drawn_this_frame = true;
 
         if (prim == 0) {   // End
             //vertex_array.bindings.clear();
@@ -1287,8 +1304,24 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
 
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 2:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 3:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 4:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 5:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 6:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 7:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 8:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 9:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 10:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 11:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 12:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 13:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 14:
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 15:
     case NV4097_SET_TEXTURE_CONTROL3: {
-        tex_pitch = args[0] & 0xfffff;
+        const auto idx = (cmd_num - NV4097_SET_TEXTURE_CONTROL3) / 4;
+        auto& texture = textures[idx];
+        texture.tex_pitch = args[0] & 0xfffff;
         args.pop_front();
         break;
     }
@@ -1333,7 +1366,23 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
 
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 2:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 3:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 4:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 5:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 6:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 7:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 8:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 9:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 10:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 11:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 12:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 13:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 14:
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 15:
     case NV4097_SET_TEXTURE_OFFSET: {
+        const auto idx = (cmd_num - NV4097_SET_TEXTURE_OFFSET) / 32;
+        auto& texture = textures[idx];
         const u32 offs = args[0];
         log("Set texture: offset: 0x%08x\n", offs);
         texture.offs = offs;
@@ -1342,8 +1391,24 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         args.pop_front();
         break;
     }
-
+    
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 2:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 3:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 4:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 5:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 6:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 7:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 8:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 9:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 10:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 11:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 12:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 13:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 14:
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 15:
     case NV4097_SET_TEXTURE_FORMAT: {
+        const auto idx = (cmd_num - NV4097_SET_TEXTURE_FORMAT) / 32;
+        auto& texture = textures[idx];
         const u8 loc = (args[0] & 0x3) - 1;
         const u32 addr = offsetAndLocationToAddress(texture.offs, loc);
         const u8 dimension = (args[0] >> 4) & 0xf;
@@ -1371,8 +1436,24 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
 
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 2:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 3:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 4:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 5:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 6:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 7:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 8:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 9:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 10:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 11:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 12:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 13:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 14:
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 15:
     case NV4097_SET_TEXTURE_CONTROL1: {
-        control1 = args[0];
+        const auto idx = (cmd_num - NV4097_SET_TEXTURE_CONTROL1) / 32;
+        auto& texture = textures[idx];
+        texture.control1 = args[0];
         args.pop_front();
         break;
     }
@@ -1383,7 +1464,23 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
 
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 2:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 3:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 4:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 5:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 6:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 7:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 8:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 9:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 10:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 11:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 12:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 13:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 14:
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 15:
     case NV4097_SET_TEXTURE_IMAGE_RECT: {
+        const auto idx = (cmd_num - NV4097_SET_TEXTURE_IMAGE_RECT) / 32;
+        auto& texture = textures[idx];
         const u16 width = args[0] >> 16;
         const u16 height = args[0] & 0xfffff;
         log("Texture: width: %d, height: %d\n", width, height);
@@ -1561,6 +1658,14 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         const u32 buf_id = args[0];
         log("Flip %d\n", buf_id);
 
+        // Hack: For speed, dont do anything if we didnt draw this frame
+        if (!has_drawn_this_frame) {
+            ps3->flip();
+            args.pop_front();
+            break;
+        }
+        else has_drawn_this_frame = false;
+        
         // Blit to output framebuffer
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBlitFramebuffer(
@@ -1572,6 +1677,9 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         
         // Reset state
         OpenGL::disableScissor();
+        for (auto& binding : vertex_array.bindings) {
+            binding.size = 0;
+        }
 
         // Probably not right
         last_flip_time = std::chrono::system_clock::now().time_since_epoch().count() * 8;

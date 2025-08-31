@@ -137,6 +137,7 @@ void Syscall::doSyscall(bool decrement_pc_if_module_call) {
     case 114:   ps3->ppu->state.gprs[3] = sys_semaphore_get_value();                break;
     case 118:   ps3->ppu->state.gprs[3] = sys_event_flag_clear();                   break;
     case 120:   ps3->ppu->state.gprs[3] = sys_rwlock_create();                      break;
+    case 121:   todo("sys_rwlock_destroy()");                                       break;
     case 122:   ps3->ppu->state.gprs[3] = sys_rwlock_rlock();                       break;
     case 124:   ps3->ppu->state.gprs[3] = sys_rwlock_runlock();                     break;
     case 125:   ps3->ppu->state.gprs[3] = sys_rwlock_wlock();                       break;
@@ -289,6 +290,10 @@ void Syscall::doSyscall(bool decrement_pc_if_module_call) {
     case 811:   ps3->ppu->state.gprs[3] = ps3->module_manager.cellFs.cellFsMkdir();     break;
     case 817:   ps3->ppu->state.gprs[3] = sys_fs_fcntl();                               break;
     case 818:   ps3->ppu->state.gprs[3] = ps3->module_manager.cellFs.cellFsLseek();     break;
+    case 821:   ps3->ppu->state.gprs[3] = sys_fs_fget_block_size();                     break;
+    case 825:   todo("sys_fs_lsn_get_cda_size()");                                      break;
+    case 827:   todo("sys_fs_lsn_lock()");                                              break;
+    case 828:   todo("sys_fs_lsn_unlock()");                                            break;
     case 871:   todo("sys_ss_access_control_engine()");                                 break;  // Debug
     case 872:   todo("sys_ss_get_open_psid()");                                         break;
     case 988:   ps3->ppu->state.gprs[3] = CELL_OK;                                      break;  // Debug

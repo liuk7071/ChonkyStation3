@@ -13,8 +13,39 @@ vec4 cc1;
 
 layout(location = 0) out vec4 out_col0;
 
-uniform sampler2D tex;
-uniform bool flip_tex;
+uniform sampler2D tex0;
+uniform sampler2D tex1;
+uniform sampler2D tex2;
+uniform sampler2D tex3;
+uniform sampler2D tex4;
+uniform sampler2D tex5;
+uniform sampler2D tex6;
+uniform sampler2D tex7;
+uniform sampler2D tex8;
+uniform sampler2D tex9;
+uniform sampler2D tex10;
+uniform sampler2D tex11;
+uniform sampler2D tex12;
+uniform sampler2D tex13;
+uniform sampler2D tex14;
+uniform sampler2D tex15;
+
+uniform bool flip_tex0;
+uniform bool flip_tex1;
+uniform bool flip_tex2;
+uniform bool flip_tex3;
+uniform bool flip_tex4;
+uniform bool flip_tex5;
+uniform bool flip_tex6;
+uniform bool flip_tex7;
+uniform bool flip_tex8;
+uniform bool flip_tex9;
+uniform bool flip_tex10;
+uniform bool flip_tex11;
+uniform bool flip_tex12;
+uniform bool flip_tex13;
+uniform bool flip_tex14;
+uniform bool flip_tex15;
 
 )";
     std::string shader;
@@ -136,15 +167,17 @@ uniform bool flip_tex;
             break;
         }
         case RSXFragment::TEX: {
-            if (instr.dst.tex_num == 0)
-                decompiled_src = std::format("texture(tex, vec2({}.x, flip_tex ? (1.0f - {}.y) : {}.y))", source(instr, 0), source(instr, 0), source(instr, 0));
-            else {
-                log("WARNING: TEX NUM != 0\n");
-                decompiled_src = "/* TODO: tex_num != 0 */ vec4(1.0f)";
-            }
+            const auto sampler = std::format("tex{:d}", (u32)instr.dst.tex_num);
+            const auto flip_tex = std::format("flip_tex{:d}", (u32)instr.dst.tex_num);
+            decompiled_src = std::format("texture({}, vec2({}.x, {} ? (1.0f - {}.y) : {}.y))", sampler, source(instr, 0), flip_tex, source(instr, 0), source(instr, 0));
             break;
         }
-                
+        case RSXFragment::TXP: {
+            const auto sampler = std::format("tex{:d}", (u32)instr.dst.tex_num);
+            const auto flip_tex = std::format("flip_tex{:d}", (u32)instr.dst.tex_num);
+            decompiled_src = std::format("texture({}, vec2({}.x / {}.w, ({} ? (1.0f - {}.y) : {}.y)) / {}.w)", sampler, source(instr, 0), source(instr, 0), flip_tex, source(instr, 0), source(instr, 0), source(instr, 0));
+            break;
+        }
         case RSXFragment::RCP: {
             decompiled_src = std::format("(1.0f / {}).xxxx", source(instr, 0));
             break;
@@ -167,12 +200,9 @@ uniform bool flip_tex;
             break;
         }
         case RSXFragment::TXB: {
-            if (instr.dst.tex_num == 0)
-                decompiled_src = std::format("/* TODO: TXB */ texture(tex, vec2({}))", source(instr, 0));
-            else {
-                log("WARNING: TEX NUM != 0\n");
-                decompiled_src = "/* TODO: tex_num != 0 */ vec4(1.0f)";
-            }
+            const auto sampler = std::format("tex{:d}", (u32)instr.dst.tex_num);
+            const auto flip_tex = std::format("flip_tex{:d}", (u32)instr.dst.tex_num);
+            decompiled_src = std::format("/* TODO: TXB */ texture({}, vec2({}.x, {} ? (1.0f - {}.y) : {}.y))", sampler, source(instr, 0), flip_tex, source(instr, 0), source(instr, 0));
             break;
         }
         case RSXFragment::NRM: {

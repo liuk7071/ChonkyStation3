@@ -194,6 +194,7 @@ public:
     u64 cellVideoOutGetState();
     u64 cellVideoOutGetResolutionAvailability();
     u64 cellVideoOutGetResolution();
+    u64 cellVideoOutGetScreenSize();
 
 private:
     MAKE_LOG_FUNCTION(log, cellVideoOut);

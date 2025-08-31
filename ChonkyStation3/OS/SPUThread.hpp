@@ -46,14 +46,16 @@ public:
     bool isRunning();
 
     void init();
+    void reset();
     void loadImage(sys_spu_image* img);
     void setID(u64 id);
+    void setGroupID(u64 id);
     
     void reschedule();
     void halt();
     void sleep(u64 us);
     void wait();
-    void stop();
+    void stop(u32 code);
     void wakeUp();
 
     static std::string threadStatusToString(ThreadStatus status) {
@@ -78,7 +80,7 @@ public:
         SPU_RdEventMask     = 11,
         SPU_RdMachStat      = 13,
         SPU_WrSRR0          = 14,
-        SPU_RdSRR0          = 15,	
+        SPU_RdSRR0          = 15,
         SPU_WrOutMbox       = 28,
         SPU_RdInMbox        = 29,
         SPU_WrOutIntrMbox   = 30,
@@ -89,7 +91,7 @@ public:
         MFC_WrMSSyncReq     = 9,
         MFC_RdTagMask       = 12,
         MFC_LSA             = 16,
-        MFC_EAH             = 17, 
+        MFC_EAH             = 17,
         MFC_EAL             = 18,
         MFC_Size            = 19,
         MFC_TagID           = 20,
@@ -215,7 +217,9 @@ public:
     
     void readProblemState(u32 addr);
     void writeProblemState(u32 addr);
-    
 private:
+    
     MAKE_LOG_FUNCTION(log, thread_spu);
+
+    u64 group_id;
 };

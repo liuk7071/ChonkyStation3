@@ -282,7 +282,7 @@ void SPUInterpreter::unimpl(const SPUInstruction& instr) {
 }
 
 void SPUInterpreter::stop(const SPUInstruction& instr) {
-    ps3->spu_thread_manager.getCurrentThread()->stop();
+    ps3->spu_thread_manager.getCurrentThread()->stop(instr.raw & 0x3ffff);
     state.pc -= 4;
     should_break = true;
 }
@@ -553,8 +553,18 @@ void SPUInterpreter::frest(const SPUInstruction& instr) {
 
     for (int i = 0; i < 4; i++) {
         const float val = state.gprs[instr.ra].f[i];
-        if(exp(val) == 0) printf("WARNING! frest: zero exponent (val = %f, exp = %d)\n", val, exp(val));
+        if (exp(val) == 0) printf("WARNING! frest: zero exponent (val = %f, exp = %d)\n", val, exp(val));
         state.gprs[instr.rt0].f[i] = 1.0f / val;
+    }
+}
+
+void SPUInterpreter::frsqest(const SPUInstruction& instr) {
+    auto exp = [](float x) -> s32 { return (reinterpret_cast<u32&>(x) >> 23) & 0xff; };
+
+    for (int i = 0; i < 4; i++) {
+        const float val = state.gprs[instr.ra].f[i];
+        if (exp(val) == 0) printf("WARNING! frqest: zero exponent (val = %f, exp = %d)\n", val, exp(val));
+        state.gprs[instr.rt0].f[i] = 1.0f / std::sqrt(std::abs(val));
     }
 }
 
@@ -1423,7 +1433,7 @@ UNIMPL_INSTR(bisled);
 //UNIMPL_INSTR(fsmh);
 //UNIMPL_INSTR(fsmb);
 //UNIMPL_INSTR(frest);
-UNIMPL_INSTR(frsqest);
+//UNIMPL_INSTR(frsqest);
 //UNIMPL_INSTR(lqx);
 //UNIMPL_INSTR(rotqbybi);
 //UNIMPL_INSTR(rotqmbybi);

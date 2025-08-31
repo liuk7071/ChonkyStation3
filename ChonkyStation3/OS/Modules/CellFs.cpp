@@ -246,11 +246,13 @@ u64 CellFs::cellFsLseek() {
 u64 CellFs::cellFsGetFreeSize() {
     const u32 path_ptr = ARG0;
     const u32 block_size_ptr = ARG1;
-    const u64 block_cnt_ptr = ARG2;
+    const u32 block_cnt_ptr = ARG2; // block_cnt is u32
     const std::string path = Helpers::readString(ps3->mem.getPtr(path_ptr));
     log("cellFsGetFreeSize(path_ptr: 0x%08x, block_size_ptr: 0x%08x, block_cnt_ptr: 0x%08x) [path: %s]\n", path_ptr, block_size_ptr, block_cnt_ptr, path.c_str());
 
-    // TODO
+    // TODO: Block size probably changes depending on the device
+    ps3->mem.write<u32>(block_size_ptr, 4096);
+    ps3->mem.write<u64>(block_cnt_ptr, 20_GB / 4096);
     return CELL_OK;
 }
 

@@ -24,9 +24,11 @@ u64 Syscall::sys_mmapper_allocate_address() {
 u64 Syscall::sys_mmapper_free_shared_memory() {
     const u32 handle = ARG0;
     log_sys_mmapper("sys_mmapper_free_shared_memory(handle: %d)\n", handle);
+    if (!handle) return CELL_OK;
     Helpers::debugAssert(handle, "sys_mmapper_free_shared_memory: handle is 0\n");
     
     auto block = ps3->mem.findBlockWithHandle(handle);
+    if (!block.first) return CELL_OK;
     Helpers::debugAssert(block.first, "sys_mmapper_free_shared_memory: tried to free unmapped memory\n");
     ps3->mem.freePhys(block.second);
 
@@ -41,7 +43,10 @@ u64 Syscall::sys_mmapper_allocate_shared_memory() {
     log_sys_mmapper("sys_mmapper_allocate_shared_memory(ipc_key: 0x%016llx, size: %d, flags: 0x%016llx, handle_ptr: 0x%08x)\n", ipc_key, size, flags, handle_ptr);
 
     // Check if we're out of memory
-    if (!ps3->mem.canAlloc(size)) return CELL_ENOMEM;
+    if (!ps3->mem.canAlloc(size)) {
+        log_sys_mmapper("Out of memory! Returning error\n");
+        return CELL_ENOMEM;
+    }
 
     auto block = ps3->mem.allocPhys(size);
     auto handle = ps3->handle_manager.request();

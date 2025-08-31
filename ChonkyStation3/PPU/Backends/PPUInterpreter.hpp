@@ -126,6 +126,7 @@ public:
     void vspltw     (const Instruction& instr);
     void vupklsb    (const Instruction& instr);
     void vcmpgtfp   (const Instruction& instr);
+    void vrfim      (const Instruction& instr);
     void vupklsh    (const Instruction& instr);
     void vcfux      (const Instruction& instr);
     void vspltisb   (const Instruction& instr);

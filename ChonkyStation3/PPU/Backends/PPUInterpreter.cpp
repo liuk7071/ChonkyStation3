@@ -115,6 +115,7 @@ int PPUInterpreter::step() {
                             case VUPKLSB:   vupklsb(instr);     break;
                             case VCMPGTFP_:
                             case VCMPGTFP:  vcmpgtfp(instr);    break;
+                            case VRFIM:     vrfim(instr);       break;
                             case VUPKLSH:   vupklsh(instr);     break;
                             case VCFUX:     vcfux(instr);       break;
                             case VSPLTISB:  vspltisb(instr);    break;
@@ -1159,6 +1160,13 @@ void PPUInterpreter::vcmpgtfp(const Instruction& instr) {
 
     if (instr.rc_v)
         state.cr.setCRField(6, all_equal | none_equal);
+}
+
+void PPUInterpreter::vrfim(const Instruction& instr) {
+    state.vrs[instr.vd].f[0] = std::floor(state.vrs[instr.vb].f[0]);
+    state.vrs[instr.vd].f[1] = std::floor(state.vrs[instr.vb].f[1]);
+    state.vrs[instr.vd].f[2] = std::floor(state.vrs[instr.vb].f[2]);
+    state.vrs[instr.vd].f[3] = std::floor(state.vrs[instr.vb].f[3]);
 }
 
 void PPUInterpreter::vupklsh(const Instruction& instr) {

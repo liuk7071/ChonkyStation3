@@ -118,3 +118,14 @@ u64 CellVideoOut::cellVideoOutGetResolution() {
 
     return CELL_OK;
 }
+
+u64 CellVideoOut::cellVideoOutGetScreenSize() {
+    const u32 video_out = ARG0;
+    const u32 size_ptr = ARG1;  // size is float
+    log("cellVideoOutGetScreenSize(video_out: 0x%08x, size_ptr: 0x%08x)", video_out, size_ptr);
+
+    // This function returns the length of the diagonal of the screen.
+    // For some weird reason it only works for 3D TVs, otherwise the error below is returned
+
+    return 0x8002b228; // CELL_VIDEO_OUT_ERROR_VALUE_IS_NOT_SET
+}

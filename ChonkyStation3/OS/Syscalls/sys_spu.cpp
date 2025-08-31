@@ -77,19 +77,13 @@ u64 Syscall::sys_spu_thread_initialize() {
     
     // Create thread and load image
     auto thread = ps3->spu_thread_manager.createThread(name);
-    thread->loadImage(img);
-    // Setup arguments
-    thread->state.gprs[3].dw[1] = arg->arg1;
-    thread->state.gprs[4].dw[1] = arg->arg2;
-    thread->state.gprs[5].dw[1] = arg->arg3;
-    thread->state.gprs[6].dw[1] = arg->arg4;
 
     // Register this thread in the SPU thread group
     Lv2SPUThreadGroup* group = ps3->lv2_obj.get<Lv2SPUThreadGroup>(group_id);
     const u32 id = ((group->threads.size() & 0xff) << 24) | (group_id & 0xffffff);
     thread->setID(id);
-    //const u32 id = thread->id;
-    group->threads.push_back(thread->id);
+    thread->setGroupID(group_id);
+    group->threads.push_back({ thread->id, img_ptr, arg->arg1, arg->arg2, arg->arg3, arg->arg4 });
 
     ps3->mem.write<u32>(id_ptr, id);
 
@@ -118,9 +112,20 @@ u64 Syscall::sys_spu_image_import() {
 }
 
 u64 Syscall::sys_spu_thread_group_join() {
-    log_sys_spu("sys_spu_thread_group_join() UNIMPLEMENTED\n");
+    const u32 group_id = ARG0;
+    const u32 cause_ptr = ARG1;
+    const u32 status_ptr = ARG2;
+    log_sys_spu("sys_spu_thread_group_join(group_id: %d, cause_ptr: 0x%08x, status_ptr: 0x%08x)\n", group_id, cause_ptr, status_ptr);
 
-    ps3->thread_manager.getCurrentThread()->wait();   // Never wake up
+    Lv2SPUThreadGroup* group = ps3->lv2_obj.get<Lv2SPUThreadGroup>(group_id);
+    if (!group->started) {
+        Helpers::panic("TODO: sys_spu_thread_group_join but the thread group already terminated\n");
+    }
+    
+    // Join the thread group
+    if (!group->join(ps3->thread_manager.getCurrentThread()->id, cause_ptr, status_ptr)) {
+        Helpers::panic("TODO: sys_spu_thread_group_join but there already was a waiting thread\n");
+    }
 
     return CELL_OK;
 }
@@ -214,7 +219,7 @@ u64 Syscall::sys_spu_thread_group_connect_event_all_threads() {
             // Check if this port is free in all threads
             bool port_ok = true;
             for (auto& thread : group->threads) {
-                if (ps3->spu_thread_manager.getThreadByID(thread)->ports[spup] != -1) {
+                if (ps3->spu_thread_manager.getThreadByID(thread.id)->ports[spup] != -1) {
                     port_ok = false;
                     break;
                 }
@@ -229,7 +234,7 @@ u64 Syscall::sys_spu_thread_group_connect_event_all_threads() {
     }
     
     for (auto& thread : group->threads) {
-        ps3->spu_thread_manager.getThreadByID(thread)->ports[spup] = equeue_id;
+        ps3->spu_thread_manager.getThreadByID(thread.id)->ports[spup] = equeue_id;
     }
     
     ps3->lv2_obj.get<Lv2EventQueue>(equeue_id)->is_connected_to_spu_event_port = true;

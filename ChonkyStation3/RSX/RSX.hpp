@@ -139,6 +139,7 @@ public:
     
     u64 last_program_hash = 0;
     bool program_changed = false;
+    bool has_drawn_this_frame = false;
     
     struct FragmentUniform {
         std::string name;
@@ -156,13 +157,15 @@ public:
         u8 format;
         u16 width;
         u16 height;
+        u32 control1 = 0;
+        u32 tex_pitch = 0;
 
         bool operator==(const Texture& other) const {
             return addr == other.addr && format == other.format && width == other.width && height == other.height;
         }
     };
-    Texture texture;
-    Texture last_tex;
+    Texture textures[16];
+    Texture last_textures[16];
 
     u32 semaphore_offset = 0;
     u32 dest_offset = 0;
@@ -184,8 +187,6 @@ public:
     u32 color_target = 0;
     u32 surface_a_offset = 0;
     u32 surface_a_location = 0;
-    u32 control1 = 0;
-    u32 tex_pitch = 0;
     u32 scissor_x = 0;
     u32 scissor_y = 0;
     u32 scissor_width = 1280;
@@ -216,7 +217,7 @@ public:
     GLuint tex_swizzle_r = GL_RED;
     GLuint tex_swizzle_g = GL_GREEN;
     GLuint tex_swizzle_b = GL_BLUE;
-    bool should_flip_tex = false;
+    bool should_flip_textures[16];
 
     bool has_immediate_data = false;
 

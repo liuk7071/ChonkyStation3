@@ -17,9 +17,14 @@ u64 CellMsgDialog::cellMsgDialogOpen2() {
     printf("%s\n", msg.c_str());
     
     if ((type & 1) == 0) {  // Error
-        Helpers::panic("Error\n");
-        //printf("WARNING: Error message dialog\n");
+        //Helpers::panic("Error\n");
+        printf("WARNING: Error message dialog\n");
     }
+    
+    // Return that we pressed "OK" to the callback
+    ARG0 = 1;   // CELL_MSGDIALOG_BUTTON_OK
+    ARG1 = user_data;
+    ps3->ppu->runFunc(ps3->mem.read<u32>(callback_ptr), ps3->mem.read<u32>(callback_ptr + 4));
 
     return CELL_OK;
 }

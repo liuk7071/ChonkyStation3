@@ -329,7 +329,7 @@ enum G_04Opcodes {
     VSR             = 0x2c4,
     VCMPGTFP        = 0x2c6,    // Vector Compare Greater-Than Floating-Point
     VCMPGTFP_       = 0x6c6,
-    VRFIM           = 0x2ca,
+    VRFIM           = 0x2ca,    // Vector Round to Floating-Point Integer Toward Minus Infinity
     VUPKLSH         = 0x2ce,    // Vector Unpack Low Signed Half Word
     VADDSBS         = 0x300,
     VMINSB          = 0x302,

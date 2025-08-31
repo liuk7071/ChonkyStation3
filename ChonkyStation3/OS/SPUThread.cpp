@@ -1,4 +1,5 @@
 #include "SPUThread.hpp"
+#include <Lv2Objects/Lv2SPUThreadGroup.hpp>
 #include "PlayStation3.hpp"
 
 
@@ -45,6 +46,32 @@ void SPUThread::init() {
     }
     
     std::memset(ls, 0, 256_KB);
+}
+
+void SPUThread::reset() {
+    state.pc = 0;
+    for (auto& i : state.gprs) {
+        i.dw[0] = 0;
+        i.dw[1] = 0;
+    }
+    state.gprs[1].w[3] = 0x3fff0;   // Default stack pointer
+    
+    std::memset(ls, 0, 256_KB);
+    while (in_mbox.size()) in_mbox.pop();
+    while (out_mbox.size()) out_mbox.pop();
+    reservation.addr = 0;
+    lsa = 0;
+    eal = 0;
+    eah = 0;
+    size = 0;
+    tag_id = 0;
+    tag_mask = 0;
+    atomic_stat = 0;
+    decrementer = 0;
+    waiting_in_mbox = false;
+    waiting_out_mbox = false;
+    event_stat.raw = 0;
+    event_mask.raw = 0;
 }
 
 void SPUThread::loadImage(sys_spu_image* img) {
@@ -95,6 +122,10 @@ void SPUThread::setID(u64 id) {
     this->id = id;
 }
 
+void SPUThread::setGroupID(u64 id) {
+    group_id = id;
+}
+
 void SPUThread::reschedule() {
     ps3->scheduler.push(std::bind(&SPUThreadManager::reschedule, &ps3->spu_thread_manager), 0, "spu thread reschedule");
 }
@@ -119,9 +150,22 @@ void SPUThread::wait() {
     reschedule();
 }
 
-void SPUThread::stop() {
-    log("Stopped thread %d \"%s\"\n", id, name.c_str());
-    status = ThreadStatus::Terminated;
+void SPUThread::stop(u32 code) {
+    switch (code) {
+    case 0x101: {
+        Helpers::debugAssert(out_mbox.size(), "sys_spu_thread_group_exit: out mbox is empty\n");
+        u32 exit_status = out_mbox.front();
+        out_mbox.pop();
+        log("sys_spu_thread_group_exit(exit_status: 0x%x)\n", exit_status);
+        Lv2SPUThreadGroup* group = ps3->lv2_obj.get<Lv2SPUThreadGroup>(group_id);
+        group->stop(exit_status);
+        break;
+        
+    }
+    default:
+        Helpers::panic("Unhandled SPU stop code 0x%x\n", code);
+    }
+    
     reschedule();
 }
 

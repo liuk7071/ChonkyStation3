@@ -125,6 +125,7 @@ public:
     // sys_fs
     u64 sys_fs_test();
     u64 sys_fs_fcntl();
+    u64 sys_fs_fget_block_size();
 
     // Temporary until I move the FS syscalls to their own file
     enum CELL_FS_S : u32 {
