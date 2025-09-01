@@ -123,6 +123,29 @@ u64 Filesystem::read(u32 file_id, u32 buf_ptr, u64 size) {
     return bytes_read;
 }
 
+u64 Filesystem::write(u32 file_id, u32 buf_ptr, u64 size) {
+    // Write up to PAGE_SIZE at max, split into multiple writes if larger
+    FILE* file = getFileFromID(file_id).file;
+    u64 bytes_written = 0;
+    u32 cur_ptr = buf_ptr;
+    u64 size_remaining = size;
+    
+    // Make the first write write up to page boundary, so that the next writes are page aligned
+    const u64 to_write = std::min(size_remaining, ps3->mem.ram.pageAlign(buf_ptr) - buf_ptr);
+    bytes_written += std::fwrite(ps3->mem.getPtr(cur_ptr), sizeof(u8), to_write, file);
+    size_remaining -= to_write;
+    cur_ptr += to_write;
+    
+    while (size_remaining > 0) {
+        const u64 to_read = std::min(PAGE_SIZE, size_remaining);
+        bytes_written += std::fwrite(ps3->mem.getPtr(cur_ptr), sizeof(u8), to_write, file);
+        size_remaining -= to_write;
+        cur_ptr += to_write;
+    }
+    
+    return bytes_written;
+}
+
 u64 Filesystem::seek(u32 file_id, s64 offs, u32 mode) {
     FILE* file = getFileFromID(file_id).file;
 #ifdef _WIN32

@@ -67,5 +67,6 @@ struct FragmentInstruction {
         BitField<18, 1, u32> abs;
         BitField<19, 11, u32> addr_reg;
         BitField<30, 1, u32> use_index_reg;
+        BitField<31, 1, u32> perspective_correction;
     } src2;
 };

@@ -292,6 +292,7 @@ void ModuleManager::init() {
         { 0xb1840b53, { "cellFsSdataOpen",                                  std::bind(&CellFs::cellFsSdataOpen, &cellFs) }},
         { 0xba901fe6, { "cellFsMkdir",                                      std::bind(&CellFs::cellFsMkdir, &cellFs) }},
         { 0xdb869f20, { "cellFsAioInit",                                    std::bind(&ModuleManager::stub, this) }},
+        { 0xecdcf2ab, { "cellFsWrite",                                      std::bind(&CellFs::cellFsWrite, &cellFs) }},
         { 0xef3efa34, { "cellFsFstat",                                      std::bind(&CellFs::cellFsFstat, &cellFs) }},
         { 0xff42dcc3, { "cellFsClosedir",                                   std::bind(&CellFs::cellFsClosedir, &cellFs) }},
 

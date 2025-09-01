@@ -286,6 +286,20 @@ u64 CellFs::cellFsMkdir() {
     return CELL_OK;
 }
 
+u64 CellFs::cellFsWrite() {
+    const u32 file_id = ARG0;
+    const u32 buf = ARG1;
+    const u64 size = ARG2;
+    const u32 bytes_written_ptr = ARG3;    // bytes_written is u64
+    log("cellFsWrite(file_id: %d, buf: 0x%08x, size: %lld, bytes_written_ptr: 0x%08x)\n", file_id, buf, size, bytes_written_ptr);
+    
+    const u64 bytes_written = ps3->fs.write(file_id, buf, size);
+    if (bytes_written_ptr) // Note: this behavior is different from sys_fs_write, which returns CELL_EFAULT in case bytes_written_ptr is null.
+        ps3->mem.write<u64>(bytes_written_ptr, bytes_written);
+
+    return CELL_OK;
+}
+
 u64 CellFs::cellFsFstat() {
     const u32 file_id = ARG0;
     const u32 stat_ptr = ARG1;

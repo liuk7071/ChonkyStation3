@@ -159,6 +159,10 @@ void RSX::setupVAO() {
         if (!binding.size) continue;
         vert_size += binding.size * binding.sizeOfComponent();
     }
+    for (auto& binding : immediate_data.bindings) {
+        if (!binding.size) continue;
+        vert_size += binding.size * binding.sizeOfComponent();
+    }
     
     for (auto& binding : vertex_array.bindings) {
         if (!binding.size) continue;
@@ -197,16 +201,49 @@ void RSX::setupVAO() {
         vao.enableAttribute(binding.index);
         curr_offs += size_of_attrib;
     }
+    
+    // TODO: I hate this duplicated code...
+    for (auto& binding : immediate_data.bindings) {
+        if (!binding.size) continue;
+        log("Attribute (immediate) %d: size: %d, stride %d, type: %d, offs: 0x%08x\n", binding.index, binding.size, binding.stride, binding.type, binding.offset);
+        
+        const auto n_components = binding.size;
+        const auto size_of_component = binding.sizeOfComponent();
+        const auto size_of_attrib = n_components * size_of_component;
+        
+        // Setup VAO attribute
+        switch (binding.type) {
+        case 1:
+            vao.setAttributeFloat<GLshort>(binding.index, binding.size, vert_size, (void*)curr_offs, true);
+            break;
+        case 6:
+            log("TODO: CMP ATTRIBUTE TYPE\n");
+            // fallthrough
+        case 2:
+            vao.setAttributeFloat<float>(binding.index, binding.size, vert_size, (void*)curr_offs, false);
+            break;
+        case 3:
+            vao.setAttributeFloat<float /* ignored */, true>(binding.index, binding.size, vert_size, (void*)curr_offs, false);
+            break;
+        case 4:
+            vao.setAttributeFloat<GLubyte>(binding.index, binding.size, vert_size, (void*)curr_offs, true);
+            break;
+        case 5:
+            vao.setAttributeFloat<GLshort>(binding.index, binding.size, vert_size, (void*)curr_offs, false);
+            break;
+        case 7:
+            vao.setAttributeFloat<GLubyte>(binding.index, binding.size, vert_size, (void*)curr_offs, false);
+            break;
+        default:
+            Helpers::panic("Unimplemented vertex attribute type %d\n", binding.type);
+        }
+        vao.enableAttribute(binding.index);
+        curr_offs += size_of_attrib;
+    }
 }
 
 template <bool is_inline_array>
 void RSX::getVertices(u32 n_vertices, std::vector<u8>& vtx_buf, u32 start) {
-    /*auto fetch = [this]<typename T, bool inlined>(u32 offs, u32 base) -> T {
-        if constexpr (!inlined)
-            return ps3->mem.read<T>(base + offs);
-        else return *(T*)&((u8*)inline_array.data())[offs];
-    };*/
-    
     auto fetch = [this]<typename T, bool inlined>(u32 addr, u32 size, u8* ptr) {
         for (int i = 0; i < size; i++) {
             if constexpr (!inlined) {
@@ -223,6 +260,10 @@ void RSX::getVertices(u32 n_vertices, std::vector<u8>& vtx_buf, u32 start) {
     
     int vert_size = 0;
     for (auto& binding : vertex_array.bindings) {
+        if (!binding.size) continue;
+        vert_size += binding.size * binding.sizeOfComponent();
+    }
+    for (auto& binding : immediate_data.bindings) {
         if (!binding.size) continue;
         vert_size += binding.size * binding.sizeOfComponent();
     }
@@ -256,6 +297,16 @@ void RSX::getVertices(u32 n_vertices, std::vector<u8>& vtx_buf, u32 start) {
                 fetch.template operator()<u64, is_inline_array>(addr, n_components, ptr);
                 break;
             }
+            ptr += size_of_attrib;
+        }
+        
+        // TODO: This can be faster
+        for (auto& binding : immediate_data.bindings) {
+            if (!binding.size) continue;
+            const auto n_components = binding.size;
+            const auto size_of_component = binding.sizeOfComponent();
+            const auto size_of_attrib = n_components * size_of_component;
+            std::memcpy(ptr, binding.data.data(), size_of_attrib);
             ptr += size_of_attrib;
         }
     }
@@ -326,6 +377,16 @@ void RSX::uploadTexture() {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, tex_swizzle_r);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, tex_swizzle_g);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, tex_swizzle_b);
+        } else if (raw_fmt == CELL_GCM_TEXTURE_B8) {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+        } else if (raw_fmt == CELL_GCM_TEXTURE_G8B8) {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_GREEN);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_GREEN);
         }
         tex_swizzle_a = GL_ALPHA;
         tex_swizzle_r = GL_RED;
@@ -336,7 +397,8 @@ void RSX::uploadTexture() {
     for (int i = 0; i < 16; i++) {
         auto& texture = textures[i];
         if (!texture.addr) continue;
-    
+        
+        log("Uploading texture %d\n", i);
         auto& last_tex = last_textures[i];
         bool& should_flip_tex = should_flip_textures[i];
         
@@ -415,6 +477,8 @@ void RSX::uploadTexture() {
         
         last_tex = texture;
     }
+    
+    //checkGLError();
 }
 
 void RSX::swizzleTexture(u8* src, u8* dst, u32 width, u32 height, u32 pixel_size) {
@@ -527,7 +591,7 @@ GLuint RSX::getTexturePixelFormat(u8 fmt) {
     case CELL_GCM_TEXTURE_COMPRESSED_DXT1:  return GL_RGBA;
     case CELL_GCM_TEXTURE_COMPRESSED_DXT23: return GL_RGBA;
     case CELL_GCM_TEXTURE_COMPRESSED_DXT45: return GL_RGBA;
-    case CELL_GCM_TEXTURE_G8B8:             return GL_RG;   // Untested
+    case CELL_GCM_TEXTURE_G8B8:             return GL_RG;
 
     default:
         Helpers::panic("Unimplemented texture format 0x%02x (0x%02x)\n", fmt, getRawTextureFormat(fmt));
@@ -1034,7 +1098,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
 
         if (prim == 0) {   // End
             //vertex_array.bindings.clear();
-
+            
             // Immediate mode drawing
             int n_verts = 0;
             if (has_immediate_data) {
@@ -1043,11 +1107,11 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
                 for (auto& binding : immediate_data.bindings) {
                     if (binding.n_verts > 0) {    // Binding is active
                         if (binding.n_verts > n_verts) n_verts = binding.n_verts;
-
+                        
                         const u32 old_size = buffer.size();
                         buffer.resize(old_size + binding.data.size());
                         std::memcpy(&buffer[old_size], binding.data.data(), binding.data.size());
-
+                        
                         // Setup VAO attribute
                         switch (binding.type) {
                         case 1:
@@ -1074,7 +1138,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
                         vao.enableAttribute(binding.index);
                     }
                 }
-
+                
                 // We don't use setupForDrawing() because we setup the VAO differently above. Can't use setupVAO()
                 compileProgram();
                 uploadTexture();
@@ -1082,7 +1146,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
                 uploadFragmentUniforms();
                 bindBuffer();
                 OpenGL::setScissor(scissor_x, 720 - (scissor_y + scissor_height), scissor_width, scissor_height);
-
+                
                 // Hack for quads
                 if (primitive == CELL_GCM_PRIMITIVE_QUADS) {
                     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_ibo);
@@ -1106,18 +1170,14 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
                     glBufferData(GL_ARRAY_BUFFER, buffer.size(), (void*)buffer.data(), GL_STATIC_DRAW);
                     glDrawArrays(getPrimitive(primitive), 0, n_verts);
                 }
-
+                
                 has_immediate_data = false;
-                for (auto& i : immediate_data.bindings) {
-                    i.n_verts = 0;
-                    i.data.clear();
-                }
             }
-
+            
             // Inlined array
             if (inline_array.size()) {
                 setupForDrawing();
-
+                
                 // Find how many vertices worth of data we have
                 u32 highest = 0;
                 AttributeBinding* highest_binding = nullptr;
@@ -1128,22 +1188,22 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
                         highest_binding = &binding;
                     }
                 }
-
+                
                 if (!highest_binding) {
                     Helpers::panic("VERTEX ARRAY WITH NO ATTRIBUTE BINDINGS!\n");
                 }
-
+                
                 const auto n_bytes = inline_array.size() * sizeof(u32);
                 const auto attrib_size = highest_binding->sizeOfComponent() * highest_binding->size;
                 u32 n_vertices = 0;
                 for (u32 i = highest_binding->offset - vertex_array.getBase(); i + attrib_size <= n_bytes; i += highest_binding->stride)
                     n_vertices++;
                 log("Drawing inline array: %d vertices\n", n_vertices);
-
+                
                 // Gather vertices and draw
                 std::vector<u8> vtx_buf;
                 getVertices<true>(n_vertices, vtx_buf, 0);
-
+                
                 // Hack for quads
                 if (primitive == CELL_GCM_PRIMITIVE_QUADS) {
                     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_ibo);
@@ -1167,8 +1227,13 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
                     glBufferData(GL_ARRAY_BUFFER, vtx_buf.size(), (void*)vtx_buf.data(), GL_STATIC_DRAW);
                     glDrawArrays(getPrimitive(primitive), 0, n_vertices);
                 }
-
+                
                 inline_array.clear();
+            }
+            
+            for (auto& i : immediate_data.bindings) {
+                i.n_verts = 0;
+                i.data.clear();
             }
         }
 
@@ -1262,7 +1327,11 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
                 }
             }
             else {
-                Helpers::panic("Index buffer type 0\n");
+                for (int i = first; i < first + count; i++) {
+                    const u32 index = ps3->mem.read<u32>(index_array.addr + i * 4);
+                    indices.push_back(index);
+                    if (index > highest_index) highest_index = index;
+                }
             }
         }
 
@@ -1374,8 +1443,10 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         immediate_data.bindings[idx].data.resize(old_size + sizeof(float) * 2);
         reinterpret_cast<float&>(immediate_data.bindings[idx].data[old_size + 0 * sizeof(float)]) = x;
         reinterpret_cast<float&>(immediate_data.bindings[idx].data[old_size + 1 * sizeof(float)]) = y;
-        // Set a flag indicating that immediate data has been uploaded
-        has_immediate_data = true;
+        // Set a flag indicating that immediate data has been uploaded,
+        // but only if we are inside a BEGIN/END pair. See RSX.hpp for details
+        if (primitive)
+            has_immediate_data = true;
 
         args.pop_front();
         args.pop_front();
@@ -1442,12 +1513,42 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
 
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 1:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 2:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 3:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 4:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 5:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 6:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 7:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 8:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 9:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 10:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 11:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 12:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 13:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 14:
+    case NV4097_SET_TEXTURE_ADDRESS + 32 * 15:
     case NV4097_SET_TEXTURE_ADDRESS: {
         log("NV4097_SET_TEXTURE_ADDRESS\n");
         args.pop_front();
         break;
     }
 
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 1:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 2:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 3:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 4:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 5:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 6:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 7:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 8:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 9:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 10:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 11:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 12:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 13:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 14:
+    case NV4097_SET_TEXTURE_CONTROL0 + 32 * 15:
     case NV4097_SET_TEXTURE_CONTROL0: {
         log("NV4097_SET_TEXTURE_CONTROL0\n");
         args.pop_front();
@@ -1477,6 +1578,21 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
 
+    case NV4097_SET_TEXTURE_FILTER + 32 * 1:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 2:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 3:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 4:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 5:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 6:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 7:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 8:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 9:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 10:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 11:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 12:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 13:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 14:
+    case NV4097_SET_TEXTURE_FILTER + 32 * 15:
     case NV4097_SET_TEXTURE_FILTER: {
         log("NV4097_SET_TEXTURE_FILTER\n");
         args.pop_front();
@@ -1548,8 +1664,10 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         reinterpret_cast<float&>(immediate_data.bindings[idx].data[old_size + 1 * sizeof(float)]) = y;
         reinterpret_cast<float&>(immediate_data.bindings[idx].data[old_size + 2 * sizeof(float)]) = z;
         reinterpret_cast<float&>(immediate_data.bindings[idx].data[old_size + 3 * sizeof(float)]) = w;
-        // Set a flag indicating that immediate data has been uploaded
-        has_immediate_data = true;
+        // Set a flag indicating that immediate data has been uploaded,
+        // but only if we are inside a BEGIN/END pair. See RSX.hpp for details
+        if (primitive)
+            has_immediate_data = true;
 
         args.pop_front();
         args.pop_front();

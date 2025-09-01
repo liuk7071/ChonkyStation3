@@ -229,13 +229,8 @@ uniform bool flip_tex15;
         if (!hasCond(instr)) {
             if (opc == RSXFragment::KIL)
                 main += decompiled_src + ";";
-            // TODO: The whole opc == TEX part might break some stuff.
-            // I do this because on the RSX if you use single channel textures, when you sample them it expects the color to be broadcasted to all the lanes (I think?).
-            // Because we use GL_RED to emulate this format, that doesn't happen (the color is only in the red channel), so stuff breaks.
-            else if (opc != RSXFragment::TEX)
-                main += std::format("{}{} = {}{};\n", decompiled_dest, mask_str, decompiled_src, mask_str);
             else
-                main += std::format("{}{} = {}({});\n", decompiled_dest, mask_str, getType(num_lanes), decompiled_src);
+                main += std::format("{}{} = {}{};\n", decompiled_dest, mask_str, decompiled_src, mask_str);
         }
         else {
             // Swizzle condition
@@ -409,6 +404,17 @@ std::string FragmentShaderDecompiler::source(FragmentInstruction& instr, int s) 
     case FRAGMENT_SOURCE_TYPE::INPUT: {
         const u32 idx = instr.src2.use_index_reg ? (instr.src2.addr_reg + 4) : instr.dst.src_idx.Value();
         source = input_names[idx];
+        if (source.contains("tex")) {
+            // Perspective correction
+            if (instr.src2.perspective_correction) {
+                markInputAsUsed(source, idx);   // We don't want to mark it after multiplying by w
+                source = std::format("({:s} * gl_FragCoord.w)", source);
+                break;
+            }
+        } else if (source == "fs_wpos") {
+            source = "gl_FragCoord";    // TODO: You can scale this somehow
+            break;  // Break early to not mark this as an input register
+        }
         markInputAsUsed(source, idx);
         break;
     }

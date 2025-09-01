@@ -219,6 +219,11 @@ public:
     GLuint tex_swizzle_b = GL_BLUE;
     bool should_flip_textures[16];
 
+    // Immediate vertex data (uploaded via the SET_VERTEX_DATA_* set of commands) can be use for OpenGL immediate-mode style drawing,
+    // but it can also be mixed with normal drawing that uses vertex arrays.
+    // For example, you can enable vertex attributes 0 and 1 in the vertex array, and then upload attribute 2 via immediate data.
+    // Immediate data is meant for immediate drawing only if the data is uploaded inside a BEGIN/END block.
+    // The flag below is set when that is the case.
     bool has_immediate_data = false;
 
     OpenGL::VertexArray vao;

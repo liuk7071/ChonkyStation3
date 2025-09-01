@@ -58,6 +58,7 @@ public:
     void close(u32 file_id);
     void closedir(u32 file_id);
     u64 read(u32 file_id, u32 buf_ptr, u64 size);
+    u64 write(u32 file_id, u32 buf_ptr, u64 size);
     u64 seek(u32 file_id, s64 offs, u32 mode);
     u64 tell(u32 file_id);
     bool mkdir(fs::path path);

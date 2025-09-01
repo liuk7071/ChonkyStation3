@@ -95,6 +95,7 @@ public:
     u64 cellFsGetFreeSize();
     u64 cellFsSdataOpen();
     u64 cellFsMkdir();
+    u64 cellFsWrite();
     u64 cellFsFstat();
     u64 cellFsClosedir();
 
