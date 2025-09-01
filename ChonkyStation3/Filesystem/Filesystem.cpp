@@ -55,7 +55,8 @@ u32 Filesystem::open(fs::path path, u32 flags) {
     }
     
     if (!fs::exists(host_path)) {
-        if (!create) {
+        // For CELL_FS_O_CREAT, the parent path must exist, otherwise return an error regardless
+        if (!create || !fs::exists(host_path.parent_path())) {
             //Helpers::panic("Tried to open non-existing file %s\n", path.generic_string().c_str());
             log("WARNING: Tried to open non-existing file %s\n", path.generic_string().c_str());
             return 0;
