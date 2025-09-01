@@ -132,8 +132,8 @@ u64 CellFs::cellFsOpen() {
 
     if (!ps3->fs.isValidDevice(path))   return CELL_ENOTMOUNTED;
     if (!ps3->fs.isDeviceMounted(path)) return CELL_ENOTMOUNTED;
-
-    const u32 file_id = ps3->fs.open(path);
+    
+    const u32 file_id = ps3->fs.open(path, flags);
     if (file_id == 0) {
         return CELL_ENOENT;
     }

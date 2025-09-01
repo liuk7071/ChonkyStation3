@@ -31,17 +31,47 @@ void Filesystem::initialize() {
     }
 }
 
-u32 Filesystem::open(fs::path path) {
+u32 Filesystem::open(fs::path path, u32 flags) {
     const fs::path host_path = ps3->fs.guestPathToHost(path);
+    const bool create = flags & CELL_FS_O_CREAT;
+    
+    std::string mode = "rb";
+    if (flags & CELL_FS_O_ACCMODE) {    // unnecessary I think
+        if (flags & CELL_FS_O_RDONLY)      mode = "rb";
+        else if (flags & CELL_FS_O_WRONLY) mode = "wb";
+        else mode = "rb+";
+    }
+    
+    if (flags & CELL_FS_O_EXCL) {
+        Helpers::panic("TODO: CELL_FS_O_EXCL\n");
+    }
+    
+    if (flags & CELL_FS_O_APPEND) {
+        Helpers::panic("TODO: CELL_FS_O_APPEND\n");
+    }
+    
+    if (flags & CELL_FS_O_MSELF) {
+        Helpers::panic("TODO: CELL_FS_O_MSELF");
+    }
+    
     if (!fs::exists(host_path)) {
-        //Helpers::panic("Tried to open non-existing file %s\n", path.generic_string().c_str());
-        log("WARNING: Tried to open non-existing file %s\n", path.generic_string().c_str());
-        return 0;
+        if (!create) {
+            //Helpers::panic("Tried to open non-existing file %s\n", path.generic_string().c_str());
+            log("WARNING: Tried to open non-existing file %s\n", path.generic_string().c_str());
+            return 0;
+        } else {
+            // Create the file if it didn't exist and the create flag was specified
+            std::ofstream temp = std::ofstream(host_path);
+            temp.close();
+        }
     }
 
     const u32 new_file_id = ps3->handle_manager.request();
-    FILE* file = std::fopen(host_path.generic_string().c_str(), "rb");
-    open_files[new_file_id] = { file, host_path, path };
+    FILE* file = std::fopen(host_path.generic_string().c_str(), mode.c_str());
+    if (!file) {
+        Helpers::panic("Failed to open file %s with mode %s\n", host_path.generic_string().c_str(), mode.c_str());
+    }
+    open_files[new_file_id] = { file, host_path, path, flags };
     log("Opened file %s\n", host_path.generic_string().c_str());
     return new_file_id;
 }
@@ -118,6 +148,12 @@ bool Filesystem::mkdir(fs::path path) {
 
 u64 Filesystem::getFileSize(u32 file_id) {
     auto file = getFileFromID(file_id);
+    
+    // If the file doesn't exist but the flag to create it was specified, return 0 size
+    if ((file.flags & CELL_FS_O_CREAT) && !fs::exists(file.path)) {
+        return 0;
+    }
+    
     return fs::file_size(file.path);
 }
 

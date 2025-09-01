@@ -13,6 +13,7 @@ u64 CellSysCache::cellSysCacheMount() {
     log("Mounting cache at %s\n", cache_path.generic_string().c_str());
     fs::create_directories(ps3->fs.guestPathToHost(cache_path));
     std::strcpy((char*)param->cache_path, cache_path.generic_string().c_str());
+    
 
     return CELL_OK;
 }

@@ -108,6 +108,7 @@ public:
         PUT     = 0x20,
         PUTB    = 0x21,
         PUTF    = 0x22,
+        PUTL    = 0x24,
         GET     = 0x40,
         GETB    = 0x41,
         GETF    = 0x42,

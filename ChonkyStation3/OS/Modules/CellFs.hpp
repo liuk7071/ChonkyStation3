@@ -16,6 +16,16 @@ using namespace CellTypes;
 
 static constexpr u64 CELL_ENOTMOUNTED = 0x8001003A;
 
+static constexpr u32 CELL_FS_O_CREAT    = 000100;
+static constexpr u32 CELL_FS_O_EXCL     = 000200;
+static constexpr u32 CELL_FS_O_TRUNC    = 001000;
+static constexpr u32 CELL_FS_O_APPEND   = 002000;
+static constexpr u32 CELL_FS_O_ACCMODE  = 000003;
+static constexpr u32 CELL_FS_O_RDONLY   = 000000;
+static constexpr u32 CELL_FS_O_RDWR     = 000002;
+static constexpr u32 CELL_FS_O_WRONLY   = 000001;
+static constexpr u32 CELL_FS_O_MSELF    = 010000;
+
 class CellFs {
 public:
     CellFs(PlayStation3* ps3) : ps3(ps3) {}

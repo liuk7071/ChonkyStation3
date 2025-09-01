@@ -38,6 +38,7 @@ public:
         FILE* file;
         fs::path path;
         fs::path guest_path;
+        u32 flags = 0;
     };
 
     struct Directory {
@@ -52,7 +53,7 @@ public:
     void mount(Device device, fs::path path);
     void umount(Device device);
     void initialize();
-    u32 open(fs::path path);
+    u32 open(fs::path path, u32 flags = 0);
     u32 opendir(fs::path path);
     void close(u32 file_id);
     void closedir(u32 file_id);

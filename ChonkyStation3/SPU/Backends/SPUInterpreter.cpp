@@ -553,7 +553,7 @@ void SPUInterpreter::frest(const SPUInstruction& instr) {
 
     for (int i = 0; i < 4; i++) {
         const float val = state.gprs[instr.ra].f[i];
-        if (exp(val) == 0) printf("WARNING! frest: zero exponent (val = %f, exp = %d)\n", val, exp(val));
+        //if (exp(val) == 0) printf("WARNING! frest: zero exponent (val = %f, exp = %d)\n", val, exp(val));
         state.gprs[instr.rt0].f[i] = 1.0f / val;
     }
 }

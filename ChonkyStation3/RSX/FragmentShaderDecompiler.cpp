@@ -61,7 +61,8 @@ uniform bool flip_tex15;
 
     curr_offs = shader_program.addr;
     const bool float16_exports = !(shader_program.ctrl & 0x40); // CELL_GCM_SHADER_CONTROL_32_BITS_EXPORTS
-
+    //const bool float16_exports = false;
+    
     log("Decompiling fragment shader\n");
 
     while (true) {

@@ -17,6 +17,8 @@ u64 CellPad::cellPadGetInfo() {
     info->max_connect = 4;
     info->now_connect = 1;
     info->system_info = 0;
+    info->product_id[0] = 0x0268;
+    info->vendor_id[0] = 0x054c;
     info->status[0] = CELL_PAD_STATUS_CONNECTED;
 
     return CELL_OK;

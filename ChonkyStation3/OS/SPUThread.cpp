@@ -410,6 +410,32 @@ void SPUThread::doCmd(u32 cmd) {
         break;
     }
 
+    case PUTL: {
+        log("PUTL @ 0x%08x\n", ps3->spu->state.pc);
+        if (size == 0) break;
+        
+        const auto n_elements = size / sizeof(MFCListElement);
+        u32 ls_addr = lsa & 0x3fff0;
+        
+        // TODO: Stall bit
+        
+        log("Beginning list transfer (size: %d, n_elements: %d)\n", size, n_elements);
+        log("Starting LS addr: 0x%08x\n", ls_addr);
+        for (int i = 0; i < n_elements; i++) {
+            MFCListElement* elem = (MFCListElement*)&ls[(eal & 0x3fff8) + i * sizeof(MFCListElement)]; // For list commands EAL is an offset in LS
+            if (elem->ts) {
+                const u32 src = ls_addr | (elem->ea & 0xf);
+                const u32 dst = elem->ea;
+                log("mem[0x%08x] <- ls[0x%08x] size: %d\n", src, dst, (u32)elem->ts);
+                std::memcpy(ps3->mem.getPtr(dst), &ls[src], elem->ts);
+            }
+            ls_addr += elem->ts;
+            // TODO: Do I need to align ls_addr to 16 bytes again here?
+        }
+        
+        break;
+    }
+            
     case GETF:
     case GETB:
     case GET: {
@@ -419,7 +445,8 @@ void SPUThread::doCmd(u32 cmd) {
     }
 
     case GETLB:
-    case GETLF: {
+    case GETLF:
+    case GETL: {
         log("GETL @ 0x%08x\n", ps3->spu->state.pc);
         if (size == 0) break;
         

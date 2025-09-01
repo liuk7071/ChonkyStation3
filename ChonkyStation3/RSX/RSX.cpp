@@ -152,96 +152,111 @@ void RSX::compileProgram() {
 
 void RSX::setupVAO() {
     log("Vertex configuration:\n");
+    
+    u32 curr_offs = 0;
+    int vert_size = 0;
+    for (auto& binding : vertex_array.bindings) {
+        if (!binding.size) continue;
+        vert_size += binding.size * binding.sizeOfComponent();
+    }
+    
     for (auto& binding : vertex_array.bindings) {
         if (!binding.size) continue;
         log("Attribute %d: size: %d, stride %d, type: %d, offs: 0x%08x\n", binding.index, binding.size, binding.stride, binding.type, binding.offset);
-        u32 offs_in_buf = binding.offset - vertex_array.getBase();
+        
+        const auto n_components = binding.size;
+        const auto size_of_component = binding.sizeOfComponent();
+        const auto size_of_attrib = n_components * size_of_component;
+        
         // Setup VAO attribute
         switch (binding.type) {
         case 1:
-            vao.setAttributeFloat<GLshort>(binding.index, binding.size, binding.stride, (void*)offs_in_buf, true);
+            vao.setAttributeFloat<GLshort>(binding.index, binding.size, vert_size, (void*)curr_offs, true);
             break;
         case 6:
             log("TODO: CMP ATTRIBUTE TYPE\n");
             // fallthrough
         case 2:
-            vao.setAttributeFloat<float>(binding.index, binding.size, binding.stride, (void*)offs_in_buf, false);
+            vao.setAttributeFloat<float>(binding.index, binding.size, vert_size, (void*)curr_offs, false);
             break;
         case 3:
-            vao.setAttributeFloat<float /* ignored */, true>(binding.index, binding.size, binding.stride, (void*)offs_in_buf, false);
+            vao.setAttributeFloat<float /* ignored */, true>(binding.index, binding.size, vert_size, (void*)curr_offs, false);
             break;
         case 4:
-            vao.setAttributeFloat<GLubyte>(binding.index, binding.size, binding.stride, (void*)offs_in_buf, true);
+            vao.setAttributeFloat<GLubyte>(binding.index, binding.size, vert_size, (void*)curr_offs, true);
             break;
         case 5:
-            vao.setAttributeFloat<GLshort>(binding.index, binding.size, binding.stride, (void*)offs_in_buf, false);
+            vao.setAttributeFloat<GLshort>(binding.index, binding.size, vert_size, (void*)curr_offs, false);
             break;
         case 7:
-            vao.setAttributeFloat<GLubyte>(binding.index, binding.size, binding.stride, (void*)offs_in_buf, false);
+            vao.setAttributeFloat<GLubyte>(binding.index, binding.size, vert_size, (void*)curr_offs, false);
             break;
         default:
             Helpers::panic("Unimplemented vertex attribute type %d\n", binding.type);
         }
         vao.enableAttribute(binding.index);
+        curr_offs += size_of_attrib;
     }
 }
 
 template <bool is_inline_array>
 void RSX::getVertices(u32 n_vertices, std::vector<u8>& vtx_buf, u32 start) {
-    u32 vtx_buf_offs = vtx_buf.size();
-    vtx_buf.resize(vtx_buf_offs + (vertex_array.size() * (n_vertices + start)));
-
-    auto fetch = [this]<typename T, bool inlined>(u32 offs, u32 base) -> T {
+    /*auto fetch = [this]<typename T, bool inlined>(u32 offs, u32 base) -> T {
         if constexpr (!inlined)
             return ps3->mem.read<T>(base + offs);
         else return *(T*)&((u8*)inline_array.data())[offs];
+    };*/
+    
+    auto fetch = [this]<typename T, bool inlined>(u32 addr, u32 size, u8* ptr) {
+        for (int i = 0; i < size; i++) {
+            if constexpr (!inlined) {
+                T data = ps3->mem.read<T>(addr + i * sizeof(T));
+                *(T*)ptr = data;
+            }
+            else {
+                *(T*)ptr = *(T*)&(((u8*)inline_array.data())[addr + i * sizeof(T)]);
+            }
+            
+            ptr += sizeof(T);
+        }
     };
-
+    
+    int vert_size = 0;
     for (auto& binding : vertex_array.bindings) {
         if (!binding.size) continue;
-        const u32 base = vertex_array.getBase();
-        const u32 offs = binding.offset;
-        const u32 offs_in_buf = offs - base;
-        const auto size = binding.sizeOfComponent();
-        if (offs_in_buf > 0x30000000) continue;
-
-        // offs_in_buf + i * binding.stride + j * size
-        // - offs_in_buf    : offset of the first attribute of this binding relative to the base of the vertex array
-        // - i              : vertex index
-        // - binding.stride : distance in bytes between 2 attributes of this binding
-        // - j              : attribute element ranging from 0 to binding.size
-        // - size:          : size of 1 element of this attribute
-
-        // Collect vertex data
-        for (int i = start; i < start + n_vertices; i++) {
-            for (int j = 0; j < binding.size; j++) {
-                switch (binding.type) {
-                case 6:
-                    log("TODO: CMP ATTRIBUTE TYPE\n");
-                    // fallthrough
-                case 2: {
-                    u32 x = fetch.template operator()<u32, is_inline_array>(offs_in_buf + i * binding.stride + j * size, base);
-                    *(float*)&vtx_buf[vtx_buf_offs + offs_in_buf + binding.stride * i + j * size] = reinterpret_cast<float&>(x);
-                    break;
-                }
-                case 7:
-                case 4: {
-                    u8 x = fetch.template operator()<u8, is_inline_array>(offs_in_buf + i * binding.stride + j * size, base);
-                    vtx_buf[vtx_buf_offs + offs_in_buf + binding.stride * i + j * size] = x;
-                    break;
-                }
-                case 1:
-                case 3: // Half float
-                case 5: {
-                    u16 x = fetch.template operator()<u16, is_inline_array>(offs_in_buf + i * binding.stride + j * size, base);
-                    *(u16*)&vtx_buf[vtx_buf_offs + offs_in_buf + binding.stride * i + j * size] = x;
-                    break;
-                }
-                default:
-                    Helpers::panic("Unimplemented vertex attribute type %d\n", binding.type);
-                }
+        vert_size += binding.size * binding.sizeOfComponent();
+    }
+    
+    u32 vtx_buf_offs = vtx_buf.size();
+    vtx_buf.resize(vtx_buf_offs + (vert_size * (n_vertices + start)));
+    
+    u8* ptr = &vtx_buf[vtx_buf_offs];
+    for (int i = start; i < n_vertices + start; i++) {
+        for (auto& binding : vertex_array.bindings) {
+            if (!binding.size) continue;
+            const auto n_components = binding.size;
+            const auto size_of_component = binding.sizeOfComponent();
+            const auto size_of_attrib = n_components * size_of_component;
+            u32 addr = binding.offset + i * binding.stride;
+            
+            // TODO: This shouldn't be necessary and might be the reason why graphics break in Minecraft
+            if (is_inline_array) addr -= vertex_array.getBase();
+            
+            switch (size_of_component) {
+            case sizeof(u8):
+                fetch.template operator()<u8, is_inline_array>(addr, n_components, ptr);
+                break;
+            case sizeof(u16):
+                fetch.template operator()<u16, is_inline_array>(addr, n_components, ptr);
+                break;
+            case sizeof(u32):
+                fetch.template operator()<u32, is_inline_array>(addr, n_components, ptr);
+                break;
+            case sizeof(u64):
+                fetch.template operator()<u64, is_inline_array>(addr, n_components, ptr);
+                break;
             }
-            //log("x: %f y: %f z: %f\n", *(float*)&vtx_buf[binding.stride * i + 0], *(float*)&vtx_buf[binding.stride * i + 4], *(float*)&vtx_buf[binding.stride * i + 8]);
+            ptr += size_of_attrib;
         }
     }
 }
@@ -1304,6 +1319,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
 
+    case NV4097_SET_TEXTURE_CONTROL3 + 4 * 1:
     case NV4097_SET_TEXTURE_CONTROL3 + 4 * 2:
     case NV4097_SET_TEXTURE_CONTROL3 + 4 * 3:
     case NV4097_SET_TEXTURE_CONTROL3 + 4 * 4:
@@ -1366,6 +1382,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
 
+    case NV4097_SET_TEXTURE_OFFSET + 32 * 1:
     case NV4097_SET_TEXTURE_OFFSET + 32 * 2:
     case NV4097_SET_TEXTURE_OFFSET + 32 * 3:
     case NV4097_SET_TEXTURE_OFFSET + 32 * 4:
@@ -1384,7 +1401,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         const auto idx = (cmd_num - NV4097_SET_TEXTURE_OFFSET) / 32;
         auto& texture = textures[idx];
         const u32 offs = args[0];
-        log("Set texture: offset: 0x%08x\n", offs);
+        log("Set texture %d: offset: 0x%08x\n", idx, offs);
         texture.offs = offs;
         texture.addr = offsetAndLocationToAddress(texture.offs, texture.loc);
 
@@ -1392,6 +1409,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
     
+    case NV4097_SET_TEXTURE_FORMAT + 32 * 1:
     case NV4097_SET_TEXTURE_FORMAT + 32 * 2:
     case NV4097_SET_TEXTURE_FORMAT + 32 * 3:
     case NV4097_SET_TEXTURE_FORMAT + 32 * 4:
@@ -1414,7 +1432,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         const u8 dimension = (args[0] >> 4) & 0xf;
         const u8 format = (args[0] >> 8) & 0xff;
         // TODO: mipmap, cubemap
-        log("Set texture: addr: 0x%08x, dimension: 0x%02x, format: 0x%02x, location: %s\n", addr, dimension, format, loc == 0 ? "RSX" : "MAIN");
+        log("Set texture %d: addr: 0x%08x, dimension: 0x%02x, format: 0x%02x, location: %s\n", idx, addr, dimension, format, loc == 0 ? "RSX" : "MAIN");
 
         texture.loc = loc;
         texture.addr = addr;
@@ -1436,6 +1454,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
 
+    case NV4097_SET_TEXTURE_CONTROL1 + 32 * 1:
     case NV4097_SET_TEXTURE_CONTROL1 + 32 * 2:
     case NV4097_SET_TEXTURE_CONTROL1 + 32 * 3:
     case NV4097_SET_TEXTURE_CONTROL1 + 32 * 4:
@@ -1464,6 +1483,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         break;
     }
 
+    case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 1:
     case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 2:
     case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 3:
     case NV4097_SET_TEXTURE_IMAGE_RECT + 32 * 4:
@@ -1483,7 +1503,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         auto& texture = textures[idx];
         const u16 width = args[0] >> 16;
         const u16 height = args[0] & 0xfffff;
-        log("Texture: width: %d, height: %d\n", width, height);
+        log("Set texture %d: width: %d, height: %d\n", idx, width, height);
 
         texture.width = width;
         texture.height = height;
@@ -1680,6 +1700,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         for (auto& binding : vertex_array.bindings) {
             binding.size = 0;
         }
+        fragment_shader_program.ctrl = 0x40;
 
         // Probably not right
         last_flip_time = std::chrono::system_clock::now().time_since_epoch().count() * 8;
