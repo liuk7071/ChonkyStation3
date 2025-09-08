@@ -139,6 +139,7 @@ void ModuleManager::init() {
         { 0xa6b180ac, { "cellGcmGetReportDataLocation",                     std::bind(&ModuleManager::stub, this) } },
         { 0xa75640e8, { "cellGcmUnbindZcull",                               std::bind(&ModuleManager::stub, this) } },
         { 0xa91b0402, { "cellGcmSetVBlankHandler",                          std::bind(&CellGcmSys::cellGcmSetVBlankHandler, &cellGcmSys) }},
+        //{ 0xacee8542, { "cellGcmSetFlipImmediate",                          std::bind(&ModuleManager::stub, this) } },
         { 0xb2e761d4, { "cellGcmResetFlipStatus",                           std::bind(&CellGcmSys::cellGcmResetFlipStatus, &cellGcmSys) }},
         { 0xbc982946, { "cellGcmSetDefaultCommandBuffer",                   std::bind(&CellGcmSys::cellGcmSetDefaultCommandBuffer, &cellGcmSys) }},
         { 0xbd100dbc, { "cellGcmSetTileInfo",                               std::bind(&CellGcmSys::cellGcmSetTileInfo, &cellGcmSys) }},
@@ -425,6 +426,7 @@ void ModuleManager::init() {
         { 0x8ceedd21, { "sceNpTrophyUnlockTrophy",                          std::bind(&ModuleManager::stub, this) } },
         { 0xb3ac3478, { "sceNpTrophyGetTrophyUnlockState",                  std::bind(&SceNpTrophy::sceNpTrophyGetTrophyUnlockState, &sceNpTrophy) } },
         { 0xe3bf9a28, { "sceNpTrophyCreateContext",                         std::bind(&SceNpTrophy::sceNpTrophyCreateContext, &sceNpTrophy) } },
+        { 0xff299e03, { "sceNpTrophyGetGameIcon",                           std::bind(&ModuleManager::stub, this) } },
 
         { 0x21425307, { "cellSaveDataListAutoLoad",                         std::bind(&ModuleManager::stub, this) } },
         { 0x248bd1d8, { "cellSaveDataUserListAutoLoad",                     std::bind(&CellSaveData::cellSaveDataUserListAutoLoad, &cellSaveData) } },
@@ -475,7 +477,12 @@ void ModuleManager::init() {
         
         { 0x13ea7c64, { "cellGemInit",                                      std::bind(&ModuleManager::stub, this) } },
         
+        { 0x02f5ced0, { "cellCameraStop",                                   std::bind(&ModuleManager::stub, this) } },
+        { 0x379c5dd6, { "cellCameraClose",                                  std::bind(&ModuleManager::stub, this) } },
+        { 0x58bc5870, { "cellCameraGetType",                                std::bind(&ModuleManager::stub, this) } },
+        { 0x5ad46570, { "cellCameraEnd",                                    std::bind(&ModuleManager::stub, this) } },
         { 0x7e063bbc, { "cellCameraIsAttached",                             std::bind(&ModuleManager::stub, this) } },
+        { 0xa7fd2f5b, { "cellCameraSetNotifyEventQueue2",                   std::bind(&ModuleManager::stub, this) } },
         { 0xbf47c5dd, { "cellCameraInit",                                   std::bind(&ModuleManager::stub, this) } },
         
         { 0x0a563878, { "cellVoiceStart",                                   std::bind(&ModuleManager::stub, this) } },
@@ -484,6 +491,7 @@ void ModuleManager::init() {
         { 0xc7cf1182, { "cellVoiceInit",                                    std::bind(&ModuleManager::stub, this) } },
 
         { 0x5c832bd7, { "cellUsbdSetThreadPriority2",                       std::bind(&ModuleManager::stub, this) } },
+        { 0x7fe92c54, { "cellUsbdRegisterExtraLdd",                         std::bind(&ModuleManager::stub, this) } },
         { 0xbd554bcb, { "cellUsbdRegisterExtraLdd2",                        std::bind(&ModuleManager::stub, this) } },
         { 0xd0e766fe, { "cellUsbdInit",                                     std::bind(&ModuleManager::stub, this) } },
 

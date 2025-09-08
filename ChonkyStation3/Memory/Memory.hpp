@@ -102,6 +102,8 @@ public:
 
     std::pair<u64, u8*> addrToOffsetInMemory(u64 vaddr);
     u8* getPtr(u64 vaddr);
+    void copyTo(u64 dst, u8* src, size_t size);
+    void copyFrom(u8* dst, u64 src, size_t size);
 
     std::vector<u8*> read_table;
     std::vector<u8*> write_table;

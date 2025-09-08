@@ -272,8 +272,9 @@ u64 CellGcmSys::cellGcmIoOffsetToAddress() {
     log("cellGcmIoOffsetToAddress(io_offs: 0x%08x, addr_ptr: 0x%08x)\n", io_offs, addr_ptr);
     
     const u32 addr = ps3->rsx.ioToEa(io_offs);
-    ps3->mem.write<u32>(addr_ptr, addr);
+    log("Address: 0x%08x\n", addr);
     
+    ps3->mem.write<u32>(addr_ptr, addr);
     return CELL_OK;
 }
 
@@ -357,7 +358,12 @@ u64 CellGcmSys::cellGcmGetReportDataAddressLocation() {
     // TODO: We just use a random, empty location for now... will fix when I implement reports
     log("cellGcmGetReportDataAddressLocation(idx: %d, loc: %d)\n", idx, loc);
 
-    return reports_addr;
+    if (loc == 1) { // Main
+        return ps3->rsx.ioToEa(0x0e000000 + idx * 16);
+    }
+    
+    // Local
+    return reports_addr * idx * 16;
 }
 
 u64 CellGcmSys::cellGcmGetDefaultSegmentWordSize() {

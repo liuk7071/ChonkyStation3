@@ -114,8 +114,10 @@ public:
     void vexptefp   (const Instruction& instr);
     void vmrglw     (const Instruction& instr);
     void vcmpgefp   (const Instruction& instr);
+    void vlogefp    (const Instruction& instr);
     void vpkswss    (const Instruction& instr);
     void vcmpgtub   (const Instruction& instr);
+    void vrfin      (const Instruction& instr);
     void vspltb     (const Instruction& instr);
     void vupkhsb    (const Instruction& instr);
     void vcmpgtuh   (const Instruction& instr);

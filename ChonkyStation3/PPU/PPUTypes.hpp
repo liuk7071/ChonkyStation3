@@ -298,7 +298,7 @@ enum G_04Opcodes {
     VSL             = 0x1c4,
     VCMPGEFP        = 0x1c6,    // Vector Compare Greater-Than-or-Equal-to Floating-Point
     VCMPGEFP_       = 0x5c6,
-    VLOGEFP         = 0x1ca,
+    VLOGEFP         = 0x1ca,    // Vector Log2 Estimate Floating-Point
     VPKSWSS         = 0x1ce,    // Vector Pack Signed Word Signed Saturate
     VADDUBS         = 0x200,
     VMINUB          = 0x202,
@@ -306,7 +306,7 @@ enum G_04Opcodes {
     VCMPGTUB        = 0x206,    // Vector Compare Greater-Than Unsigned Byte
     VCMPGTUB_       = 0x606,
     VMULEUB         = 0x208,
-    VRFIN           = 0x20a,
+    VRFIN           = 0x20a,    // Vector Round to Floating-Point Integer Nearest
     VSPLTB          = 0x20c,    // Vector Splat Byte
     VUPKHSB         = 0x20e,    // Vector Unpack High Signed Byte
     VADDUHS         = 0x240,

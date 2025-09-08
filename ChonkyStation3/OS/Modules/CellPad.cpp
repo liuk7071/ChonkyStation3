@@ -14,7 +14,7 @@ u64 CellPad::cellPadGetInfo() {
     log("cellPadGetInfo(info_ptr: 0x%08x)\n", info_ptr);
 
     CellPadInfo* info = (CellPadInfo*)ps3->mem.getPtr(info_ptr);
-    info->max_connect = 4;
+    info->max_connect = 7;
     info->now_connect = 1;
     info->system_info = 0;
     info->product_id[0] = 0x0268;
@@ -27,12 +27,12 @@ u64 CellPad::cellPadGetInfo() {
 u64 CellPad::cellPadGetData() {
     const u32 port_num = ARG0;
     const u32 data_ptr = ARG1;
-    //log("cellPadGetData(port_num: %d, data_ptr: 0x%08x) @ 0x%08x\n", port_num, data_ptr, ps3->ppu->state.lr);
+    log("cellPadGetData(port_num: %d, data_ptr: 0x%08x) @ 0x%08x\n", port_num, data_ptr, ps3->ppu->state.lr);
 
     if (port_num != 0) return 0x80121107; // CELL_PAD_ERROR_NO_DEVICE
 
     CellPadData* data = (CellPadData*)ps3->mem.getPtr(data_ptr);
-    data->len = 8;
+    data->len = 24;
 
     for (int i = 0; i < CELL_PAD_MAX_CODES; i++)
         data->button[i] = buttons[i];
@@ -48,12 +48,21 @@ u64 CellPad::cellPadGetInfo2() {
     log("cellPadGetInfo2(info_ptr: 0x%08x)\n", info_ptr);
 
     CellPadInfo2* info = (CellPadInfo2*)ps3->mem.getPtr(info_ptr);
-    info->max_connect = 4;
+    info->max_connect = 7;
     info->now_connect = 1;
     info->system_info = 0;
+    
+    // Clear port info
+    for (int i = 0; i < CELL_PAD_MAX_PORT_NUM; i++) {
+        info->port_status[i] = 0;
+        info->port_setting[i] = 0;
+        info->device_capability[i] = 0;
+        info->device_type[i] = 0;
+    }
+    
     info->port_status[0] = 1;   // Connected
-    info->port_setting[0] = 0;
-    info->device_capability[0] = 1;
+    info->port_setting[0] = 0x6;
+    info->device_capability[0] = 0x1f;
     info->device_type[0] = 0;   // Standard
 
     return CELL_OK;

@@ -149,7 +149,10 @@ u64 CellSaveData::handleSaveDataOperation(fs::path savedata_path, u32 stat_cb_pt
         data.ints["ATTRIBUTE"]                  = set_param->attribute;
         data.ints["PARENTAL_LEVEL"]             = 0;
         sfo_loader.save(savedata_path / "PARAM.SFO", data);
-    } else if (is_new_data) Helpers::panic("savedata: new savedata but no set_param specified\n");
+    } else if (is_new_data) {
+        //return CELL_OK;
+        Helpers::panic("savedata: new savedata but no set_param specified\n");
+    }
     
     // Call the file operation callback to figure out what and how many files we need to save
     file_get->exc_size = 0;

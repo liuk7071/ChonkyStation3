@@ -37,6 +37,7 @@ public:
 #ifdef CHONKYSTATION3_USER_BUILD
 #define true false
 #else
+
 #define true false
 //#define false true
 #endif
@@ -61,7 +62,7 @@ static Logger cellGame              = Logger<true> ("[Module ][cellGame      ] "
 static Logger cellResc              = Logger<false>("[Module ][cellResc      ] ");
 static Logger cellSysmodule         = Logger<true> ("[Module ][cellSysmodule ] ");
 static Logger cellSysutil           = Logger<false>("[Module ][cellSysutil   ] ");
-static Logger cellGcmSys            = Logger<false>("[Module ][cellGcmSys    ] ");
+static Logger cellGcmSys            = Logger<true> ("[Module ][cellGcmSys    ] ");
 static Logger cellVideoOut          = Logger<true> ("[Module ][cellVideoOut  ] ");
 static Logger sysLwCond             = Logger<true> ("[Module ][sysLwCond     ] ");
 static Logger sysLwMutex            = Logger<true> ("[Module ][sysLwMutex    ] ");

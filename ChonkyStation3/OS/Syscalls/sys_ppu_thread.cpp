@@ -37,7 +37,7 @@ u64 Syscall::sys_ppu_thread_join() {
 u64 Syscall::sys_ppu_thread_get_priority() {
     const u32 thread_id = ARG0;
     const u32 prio_ptr = ARG1;
-    log_sys_ppu_thread("sys_ppu_thread_get_priority(thread_id: %d, prio_ptr: 0x%08x)\n");
+    log_sys_ppu_thread("sys_ppu_thread_get_priority(thread_id: %d, prio_ptr: 0x%08x)\n", thread_id ,prio_ptr);
 
     ps3->mem.write<u32>(prio_ptr, ps3->thread_manager.getThreadByID(thread_id)->prio);
     return CELL_OK;

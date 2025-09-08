@@ -205,6 +205,12 @@ void RSX::setupVAO() {
     // TODO: I hate this duplicated code...
     for (auto& binding : immediate_data.bindings) {
         if (!binding.size) continue;
+        if (vertex_array.bindings[binding.index].size) {
+            // TODO: Is it correct to assume that if an attribute is enabled in the vertex array then we shouldn't use the immediate data?
+            // GTAV does this. It writes 0 to all bindings via the SET_VERTEX_DATA_* commands, but then it enables some bindings in the vertex array.
+            // Without this check my code would think both the normal vertex array binding and the immediate binding for this index are enabled (which breaks).
+            continue;
+        }
         log("Attribute (immediate) %d: size: %d, stride %d, type: %d, offs: 0x%08x\n", binding.index, binding.size, binding.stride, binding.type, binding.offset);
         
         const auto n_components = binding.size;
@@ -258,30 +264,54 @@ void RSX::getVertices(u32 n_vertices, std::vector<u8>& vtx_buf, u32 start) {
         }
     };
     
-    int vert_size = 0;
+    int vert_size_arr = 0;
+    int vert_size_imm = 0;
     for (auto& binding : vertex_array.bindings) {
         if (!binding.size) continue;
-        vert_size += binding.size * binding.sizeOfComponent();
+        vert_size_arr += binding.size * binding.sizeOfComponent();
     }
     for (auto& binding : immediate_data.bindings) {
         if (!binding.size) continue;
-        vert_size += binding.size * binding.sizeOfComponent();
+        vert_size_imm += binding.size * binding.sizeOfComponent();
+    }
+    
+    const int vert_size = vert_size_arr + vert_size_imm;
+    
+    if constexpr (is_inline_array) {
+        n_vertices = (inline_array.size() * sizeof(u32)) / vert_size_arr;
     }
     
     u32 vtx_buf_offs = vtx_buf.size();
     vtx_buf.resize(vtx_buf_offs + (vert_size * (n_vertices + start)));
     
+    u32 curr_inline_offs = 0;   // Used for inline arrays only
     u8* ptr = &vtx_buf[vtx_buf_offs];
+    
+    if constexpr (is_inline_array) {
+        for (auto& binding : vertex_array.bindings)
+            binding.offset = 0;
+    }
+    
     for (int i = start; i < n_vertices + start; i++) {
         for (auto& binding : vertex_array.bindings) {
             if (!binding.size) continue;
             const auto n_components = binding.size;
             const auto size_of_component = binding.sizeOfComponent();
             const auto size_of_attrib = n_components * size_of_component;
-            u32 addr = binding.offset + i * binding.stride;
-            
-            // TODO: This shouldn't be necessary and might be the reason why graphics break in Minecraft
-            if (is_inline_array) addr -= vertex_array.getBase();
+            u32 addr = 0;
+            if constexpr (!is_inline_array)
+                addr = binding.offset + i * binding.stride;
+            else {
+                addr = curr_inline_offs;
+
+                // Here we setup the offset and stride that will be used by setupVAO later
+                if (!binding.offset) {
+                    binding.offset = curr_inline_offs;
+                    binding.stride = vert_size_arr;
+                }
+                
+                curr_inline_offs += size_of_attrib;
+            }
             
             switch (size_of_component) {
             case sizeof(u8):
@@ -566,6 +596,7 @@ GLuint RSX::getTextureInternalFormat(u8 fmt) {
     switch (getRawTextureFormat(fmt)) {
 
     case CELL_GCM_TEXTURE_B8:               return GL_RED;
+    case CELL_GCM_TEXTURE_A1R5G5B5:         return GL_RGBA;
     case CELL_GCM_TEXTURE_R5G6B5:           return GL_RGB565;
     case CELL_GCM_TEXTURE_A8R8G8B8:         return GL_RGBA;
     case CELL_GCM_TEXTURE_D8R8G8B8:         return GL_RGBA;
@@ -585,6 +616,7 @@ GLuint RSX::getTexturePixelFormat(u8 fmt) {
     switch (getRawTextureFormat(fmt)) {
 
     case CELL_GCM_TEXTURE_B8:               return GL_RED;
+    case CELL_GCM_TEXTURE_R5G5B5A1:         return GL_RGBA;
     case CELL_GCM_TEXTURE_R5G6B5:           return GL_RGB;
     case CELL_GCM_TEXTURE_A8R8G8B8:         return GL_BGRA;
     case CELL_GCM_TEXTURE_D8R8G8B8:         return GL_BGRA;
@@ -602,6 +634,7 @@ GLuint RSX::getTextureDataType(u8 fmt) {
     switch (getRawTextureFormat(fmt)) {
         
     case CELL_GCM_TEXTURE_R5G6B5:           return GL_UNSIGNED_SHORT_5_6_5;
+    case CELL_GCM_TEXTURE_R5G5B5A1:         return GL_UNSIGNED_SHORT_1_5_5_5_REV;   // TODO: Unsure if this works
     case CELL_GCM_TEXTURE_A8R8G8B8:         return GL_UNSIGNED_INT_8_8_8_8_REV;
 
     default:
@@ -701,13 +734,6 @@ void RSX::putWritten(u64 unused) {
 void RSX::runCommandList() {
     log("Executing commands\n");
     log("get: 0x%08x, put: 0x%08x\n", (u32)gcm.ctrl->get, (u32)gcm.ctrl->put);
-
-    /*
-    if (hanged)
-        gcm.ctrl->get = gcm.ctrl->get + 4;
-    if (gcm.ctrl->get == gcm.ctrl->put)
-        gcm.ctrl->get = gcm.ctrl->get - 4;
-  */
     
     // Used to detect hangs
     hanged = false;
@@ -757,7 +783,6 @@ void RSX::runCommandList() {
                 if (gcm.ctrl->get == last_jump_dst && old_get == last_jump_addr) {
                     log("RSX hanged, aborting...\n");
                     hanged = true;
-                    exit(0);
                     break;
                 }
                 last_jump_addr = old_get;
@@ -829,7 +854,7 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
     case NV406E_SEMAPHORE_ACQUIRE: {
         const auto sema = ps3->mem.read<u32>(gcm.label_addr + semaphore_offset);
         if (sema != args[0]) {
-            //Helpers::panic("Could not acquire semaphore\n");
+            log("Could not acquire semaphore\n");
         }
         args.pop_front();
         break;
@@ -1176,6 +1201,10 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
             
             // Inlined array
             if (inline_array.size()) {
+                // Inline arrays rely on calling getVertices before setupForDrawing, because
+                // getVertices setups the offsets required by setupVAO (inside setupForDrawing)
+                std::vector<u8> vtx_buf;
+                getVertices<true>(0, vtx_buf, 0);
                 setupForDrawing();
                 
                 // Find how many vertices worth of data we have
@@ -1199,10 +1228,6 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
                 for (u32 i = highest_binding->offset - vertex_array.getBase(); i + attrib_size <= n_bytes; i += highest_binding->stride)
                     n_vertices++;
                 log("Drawing inline array: %d vertices\n", n_vertices);
-                
-                // Gather vertices and draw
-                std::vector<u8> vtx_buf;
-                getVertices<true>(n_vertices, vtx_buf, 0);
                 
                 // Hack for quads
                 if (primitive == CELL_GCM_PRIMITIVE_QUADS) {

@@ -80,11 +80,15 @@ uniform bool flip_tex15;
         if (opc == RSXFragment::FENCT) continue;
         if (opc == RSXFragment::FENCB) continue;
         if (opc == RSXFragment::IFE) {
-            main += "// IFE";
+            main += "// IFE\n";
             continue;
         }
         if (opc == RSXFragment::LOOP) {
-            main += "// LOOP";
+            main += "// LOOP\n";
+            continue;
+        }
+        if (opc == RSXFragment::BRK) {
+            main += "// BRK\n";
             continue;
         }
         
@@ -137,6 +141,10 @@ uniform bool flip_tex15;
         }
         case RSXFragment::SLE: {
             decompiled_src = std::format("vec4(lessThanEqual({}, {}))", source(instr, 0), source(instr, 1));
+            break;
+        }
+        case RSXFragment::SNE: {
+            decompiled_src = std::format("vec4(notEqual({}, {}))", source(instr, 0), source(instr, 1));
             break;
         }
         case RSXFragment::SGT: {
@@ -196,6 +204,14 @@ uniform bool flip_tex15;
             decompiled_src = std::format("vec4(log2({}.x))", source(instr, 0));
             break;
         }
+        case RSXFragment::COS: {
+            decompiled_src = std::format("cos({}.xxxx)", source(instr, 0));
+            break;
+        }
+        case RSXFragment::SIN: {
+            decompiled_src = std::format("sin({}.xxxx)", source(instr, 0));
+            break;
+        }
         case RSXFragment::DP2: {
             decompiled_src = std::format("vec4(dot(vec2({}), vec2({})))", source(instr, 0), source(instr, 1));
             break;
@@ -225,6 +241,11 @@ uniform bool flip_tex15;
             Helpers::panic("Unimplemented fragment instruction %s\n", fragment_opcodes[opc].c_str());
         }
 
+        // Saturate
+        if (instr.dst.saturate) {
+            decompiled_src = std::format("clamp({}, 0.0, 1.0)", decompiled_src);
+        }
+        
         // Conditional execution
         if (!hasCond(instr)) {
             if (opc == RSXFragment::KIL)

@@ -316,6 +316,54 @@ u8* Memory::getPtr(u64 vaddr) {
     return &mem[offset];
 }
 
+// The following 2 functions copy size bytes from src to dst.
+// In copyTo, dst is a guest pointer, in copyFrom src is a guest pointer.
+// These functions are necessary because contiguous pages of virtual memory aren't guaranteed to
+// also be contiguous in physical memory, so a normal memcpy wouldn't always work.
+void Memory::copyTo(u64 dst, u8* src, size_t size) {
+    // Copy up to PAGE_SIZE at max, split into multiple copies if larger
+    u64 cur_dst = dst;
+    u8* cur_src = src;
+    u64 size_remaining = size;
+    
+    // Make the first copy copy up to page boundary, so that the next copies are page aligned
+    const u64 to_copy = std::min(size_remaining, ram.pageAlign(cur_dst) - cur_dst);
+    std::memcpy(getPtr(cur_dst), cur_src, to_copy);
+    size_remaining -= to_copy;
+    cur_dst += to_copy;
+    cur_src += to_copy;
+    
+    while (size_remaining > 0) {
+        const u64 to_copy = std::min(PAGE_SIZE, size_remaining);
+        std::memcpy(getPtr(cur_dst), cur_src, to_copy);
+        size_remaining -= to_copy;
+        cur_dst += to_copy;
+        cur_src += to_copy;
+    }
+}
+
+void Memory::copyFrom(u8* dst, u64 src, size_t size) {
+    // Copy up to PAGE_SIZE at max, split into multiple copies if larger
+    u8* cur_dst = dst;
+    u64 cur_src = src;
+    u64 size_remaining = size;
+    
+    // Make the first copy copy up to page boundary, so that the next copies are page aligned
+    const u64 to_copy = std::min(size_remaining, ram.pageAlign(cur_src) - cur_src);
+    std::memcpy(cur_dst, getPtr(cur_src), to_copy);
+    size_remaining -= to_copy;
+    cur_dst += to_copy;
+    cur_src += to_copy;
+    
+    while (size_remaining > 0) {
+        const u64 to_copy = std::min(PAGE_SIZE, size_remaining);
+        std::memcpy(cur_dst, getPtr(cur_src), to_copy);
+        size_remaining -= to_copy;
+        cur_dst += to_copy;
+        cur_src += to_copy;
+    }
+}
+
 // Creates a reservation for the given virtual address.
 void Memory::reserveAddress(u64 vaddr) {
     reserveAddress(vaddr, 1, curr_thread_id);

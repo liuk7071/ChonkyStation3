@@ -188,6 +188,7 @@ void Syscall::doSyscall(bool decrement_pc_if_module_call) {
     case 178:   ps3->ppu->state.gprs[3] = sys_spu_thread_group_join();                          break;
     case 182:   ps3->ppu->state.gprs[3] = sys_spu_thread_read_ls();                             break;
     case 185:   ps3->ppu->state.gprs[3] = sys_spu_thread_group_connect_event();                 break;
+    //case 186:   todo("sys_spu_thread_group_disconnect_event()");                                break;
     case 190:   ps3->ppu->state.gprs[3] = sys_spu_thread_write_spu_mb();                        break;
     case 191:   ps3->ppu->state.gprs[3] = sys_spu_thread_connect_event();                       break;
     case 193:   todo("sys_spu_thread_bind_queue()");                                            break;

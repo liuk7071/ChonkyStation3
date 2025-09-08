@@ -99,9 +99,11 @@ int PPUInterpreter::step() {
                             case VMRGLW:    vmrglw(instr);      break;
                             case VCMPGEFP_:
                             case VCMPGEFP:  vcmpgefp(instr);    break;
+                            case VLOGEFP:   vlogefp(instr);     break;
                             case VPKSWSS:   vpkswss(instr);     break;
                             case VCMPGTUB_:
                             case VCMPGTUB:  vcmpgtub(instr);    break;
+                            case VRFIN:     vrfin(instr);       break;
                             case VSPLTB:    vspltb(instr);      break;
                             case VUPKHSB:   vupkhsb(instr);     break;
                             case VCMPGTUH_:
@@ -1012,6 +1014,13 @@ void PPUInterpreter::vcmpgefp(const Instruction& instr) {
         state.cr.setCRField(6, all_equal | none_equal);
 }
 
+void PPUInterpreter::vlogefp(const Instruction& instr) {
+    state.vrs[instr.vd].f[0] = std::log2(state.vrs[instr.vb].f[0]);
+    state.vrs[instr.vd].f[1] = std::log2(state.vrs[instr.vb].f[1]);
+    state.vrs[instr.vd].f[2] = std::log2(state.vrs[instr.vb].f[2]);
+    state.vrs[instr.vd].f[3] = std::log2(state.vrs[instr.vb].f[3]);
+}
+
 void PPUInterpreter::vpkswss(const Instruction& instr) {
     u32 src[8];
     for (int i = 0; i < 4; i++) src[i + 0] = state.vrs[instr.vb].w[i];
@@ -1042,6 +1051,13 @@ void PPUInterpreter::vcmpgtub(const Instruction& instr) {
 
     if (instr.rc_v)
         state.cr.setCRField(6, all_equal | none_equal);
+}
+
+void PPUInterpreter::vrfin(const Instruction& instr) {
+    state.vrs[instr.vd].f[0] = std::round(state.vrs[instr.vb].f[0]);
+    state.vrs[instr.vd].f[1] = std::round(state.vrs[instr.vb].f[1]);
+    state.vrs[instr.vd].f[2] = std::round(state.vrs[instr.vb].f[2]);
+    state.vrs[instr.vd].f[3] = std::round(state.vrs[instr.vb].f[3]);
 }
 
 void PPUInterpreter::vspltb(const Instruction& instr) {

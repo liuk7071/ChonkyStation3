@@ -281,7 +281,7 @@ u32 SPUThread::readChannel(u32 ch) {
 }
 
 u32 SPUThread::readChannelCount(u32 ch) {
-    //log("Read cnt %s @ 0x%08x\n", channelToString(ch).c_str(), ps3->spu->state.pc);
+    log("Read cnt %s @ 0x%08x\n", channelToString(ch).c_str(), ps3->spu->state.pc);
 
     switch (ch) {
 
@@ -400,13 +400,19 @@ void SPUThread::writeChannel(u32 ch, u32 val) {
 }
 
 void SPUThread::doCmd(u32 cmd) {
+    auto crosses = [&](u32 addr, u64 size) -> bool {
+        auto aligned = ps3->mem.ram.pageAlign(addr);
+        if (aligned - addr < size) return true;
+        return false;
+    };
+    
     switch (cmd) {
      
     case PUTF:
     case PUTB:
     case PUT: {
-        log("PUT @ 0x%08x\n", ps3->spu->state.pc);
-        std::memcpy(ps3->mem.getPtr(eal), &ls[lsa & 0x3ffff], size);
+        log("PUT 0x%08x 0x%x @ 0x%08x\n", eal, size, ps3->spu->state.pc);
+        ps3->mem.copyTo(eal, &ls[lsa & 0x3ffff], size);
         break;
     }
 
@@ -440,7 +446,7 @@ void SPUThread::doCmd(u32 cmd) {
     case GETB:
     case GET: {
         log("GET @ 0x%08x\n", ps3->spu->state.pc);
-        std::memcpy(&ls[lsa & 0x3ffff], ps3->mem.getPtr(eal), size);
+        ps3->mem.copyFrom(&ls[lsa & 0x3ffff], eal, size);
         break;
     }
 
@@ -464,6 +470,9 @@ void SPUThread::doCmd(u32 cmd) {
                 const u32 src = elem->ea;
                 log("ls[0x%08x] <- mem[0x%08x] size: %d\n", dst, src, (u32)elem->ts);
                 std::memcpy(&ls[dst], ps3->mem.getPtr(src), elem->ts);
+            }
+            if (elem->sb & 0x8000) {
+                Helpers::panic("TODO: stall and notify bit\n");
             }
             ls_addr += elem->ts;
             // TODO: Do I need to align ls_addr to 16 bytes again here?
@@ -553,6 +562,10 @@ void SPUThread::readProblemState(u32 addr) {
         }
         
         val = mbox_val;
+        break;
+    }
+    case Prxy_TagStatus_offs: {
+        val = tag_mask; // TODO like the rdch TagStat
         break;
     }
     case SPU_MBox_Stat_offs: {
