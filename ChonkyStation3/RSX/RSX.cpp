@@ -854,7 +854,10 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
     case NV406E_SEMAPHORE_ACQUIRE: {
         const auto sema = ps3->mem.read<u32>(gcm.label_addr + semaphore_offset);
         if (sema != args[0]) {
-            log("Could not acquire semaphore\n");
+            //gcm.ctrl->get = gcm.ctrl->get - 8;
+            printf("Could not acquire semaphore\n");
+            //Helpers::panic("Could not acquire semaphore\n");
+            //return;
         }
         args.pop_front();
         break;

@@ -311,7 +311,7 @@ enum G_04Opcodes {
     VUPKHSB         = 0x20e,    // Vector Unpack High Signed Byte
     VADDUHS         = 0x240,
     VMINUH          = 0x242,
-    VSRH            = 0x244,
+    VSRH            = 0x244,    // Vector Shift Right Half Word
     VCMPGTUH        = 0x246,    // Vector Compare Greater-Than Unsigned Half Word
     VCMPGTUH_       = 0x646,
     VMULEUH         = 0x248,

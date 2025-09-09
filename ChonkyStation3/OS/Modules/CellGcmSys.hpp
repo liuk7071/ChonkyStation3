@@ -72,7 +72,7 @@ public:
     u32 default_ctx_ptr = 0;    // The ctx ptr passed to cellGcmInitBody
     u32 ctx_addr = 0;
     u32 ctrl_addr = 0;
-    CellGcmControl* ctrl;
+    CellGcmControl* ctrl = nullptr;
 
     CellGcmConfig gcm_config;
     u32 dma_ctrl_addr = 0;

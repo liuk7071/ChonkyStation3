@@ -106,6 +106,7 @@ int PPUInterpreter::step() {
                             case VRFIN:     vrfin(instr);       break;
                             case VSPLTB:    vspltb(instr);      break;
                             case VUPKHSB:   vupkhsb(instr);     break;
+                            case VSRH:      vsrh(instr);        break;
                             case VCMPGTUH_:
                             case VCMPGTUH:  vcmpgtuh(instr);    break;
                             case VSPLTH:    vsplth(instr);      break;
@@ -1075,6 +1076,17 @@ void PPUInterpreter::vupkhsb(const Instruction& instr) {
     }
 }
 
+void PPUInterpreter::vsrh(const Instruction& instr) {
+    state.vrs[instr.vd].h[0] = state.vrs[instr.va].h[0] >> (state.vrs[instr.vb].h[0] & 0xf);
+    state.vrs[instr.vd].h[1] = state.vrs[instr.va].h[1] >> (state.vrs[instr.vb].h[1] & 0xf);
+    state.vrs[instr.vd].h[2] = state.vrs[instr.va].h[2] >> (state.vrs[instr.vb].h[2] & 0xf);
+    state.vrs[instr.vd].h[3] = state.vrs[instr.va].h[3] >> (state.vrs[instr.vb].h[3] & 0xf);
+    state.vrs[instr.vd].h[4] = state.vrs[instr.va].h[4] >> (state.vrs[instr.vb].h[4] & 0xf);
+    state.vrs[instr.vd].h[5] = state.vrs[instr.va].h[5] >> (state.vrs[instr.vb].h[5] & 0xf);
+    state.vrs[instr.vd].h[6] = state.vrs[instr.va].h[6] >> (state.vrs[instr.vb].h[6] & 0xf);
+    state.vrs[instr.vd].h[7] = state.vrs[instr.va].h[7] >> (state.vrs[instr.vb].h[7] & 0xf);
+}
+
 void PPUInterpreter::vcmpgtuh(const Instruction& instr) {
     u8 all_equal = 0x8;
     u8 none_equal = 0x2;
@@ -1285,12 +1297,14 @@ void PPUInterpreter::vcmpgtsw(const Instruction& instr) {
 
 void PPUInterpreter::vctuxs(const Instruction& instr) {
     const auto factor = 1 << instr.uimm;
-    state.vrs[instr.vd].w[0] = (u32)state.vrs[instr.vb].f[0] * factor;
-    state.vrs[instr.vd].w[1] = (u32)state.vrs[instr.vb].f[1] * factor;
-    state.vrs[instr.vd].w[2] = (u32)state.vrs[instr.vb].f[2] * factor;
-    state.vrs[instr.vd].w[3] = (u32)state.vrs[instr.vb].f[3] * factor;
+    for (int i = 0; i < 4; i++) {
+        s64 res = state.vrs[instr.vb].f[i] * factor;
+        if (res > UINT32_MAX)   res = UINT32_MAX;
+        else if (res < 0)       res = 0;
+        state.vrs[instr.vd].w[i] = (u32)res;
+    }
 
-    // TODO: Saturate
+    // TODO: SAT
 }
 
 void PPUInterpreter::vspltisw(const Instruction& instr) {

@@ -120,6 +120,7 @@ public:
     void vrfin      (const Instruction& instr);
     void vspltb     (const Instruction& instr);
     void vupkhsb    (const Instruction& instr);
+    void vsrh       (const Instruction& instr);
     void vcmpgtuh   (const Instruction& instr);
     void vsplth     (const Instruction& instr);
     void vupkhsh    (const Instruction& instr);

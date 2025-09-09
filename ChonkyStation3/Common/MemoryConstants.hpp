@@ -3,8 +3,8 @@
 
 static constexpr u64 PAGE_BITS = 16;
 static constexpr u64 PAGE_SHIFT = (32 - PAGE_BITS);
-static constexpr u64 PAGE_COUNT = 1 << PAGE_BITS;
-static constexpr u64 PAGE_SIZE = 1 << PAGE_SHIFT;
+static constexpr u64 PAGE_COUNT = 1ull << PAGE_BITS;
+static constexpr u64 PAGE_SIZE = 1ull << PAGE_SHIFT;
 static constexpr u64 PAGE_MASK = PAGE_SIZE - 1;
 static constexpr u64 RAM_SIZE = 256_MB;
 static constexpr u64 RAM_START = 0x00010000;

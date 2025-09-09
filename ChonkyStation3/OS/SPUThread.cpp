@@ -355,7 +355,7 @@ void SPUThread::writeChannel(u32 ch, u32 val) {
             Helpers::debugAssert(out_mbox.size(), "sys_event_flag_set_bit: out_mbox is empty\n");
             const u32 shift = val & 0xffffff;
             Helpers::debugAssert(shift < 64, "sys_event_flag_set_bit: flag shift value is >= 64\n");
-            u64 flag = 1 << shift;
+            u64 flag = 1ull << shift;
             u64 id = out_mbox.front();
             out_mbox.pop();
             log("sys_event_flag_set_bit(id: %d, flag: 0x%016llx)\n", id, flag);
@@ -370,7 +370,7 @@ void SPUThread::writeChannel(u32 ch, u32 val) {
             Helpers::debugAssert(out_mbox.size(), "sys_event_flag_set_bit_impatient: out_mbox is empty\n");
             const u32 shift = val & 0xffffff;
             Helpers::debugAssert(shift < 64, "sys_event_flag_set_bit_impatient: flag shift value is >= 64\n");
-            u64 flag = 1 << shift;
+            u64 flag = 1ull << shift;
             u64 id = out_mbox.front();
             out_mbox.pop();
             log("sys_event_flag_set_bit_impatient(id: %d, flag: 0x%016llx)\n", id, flag);
