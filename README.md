@@ -197,5 +197,8 @@ This is a hobby project I'm developing for fun and to learn.<br>
     <li>
     <a href="https://github.com/OFFTKP/felix86"><b>felix86</b></a>: A new x86-64 → RISC-V Linux userspace emulator.
     </li>
+    <li>
+    <a href="https://github.com/allkern/iris"><b>iris</b></a>: Work-in-progress PlayStation 2 emulator for Windows, Linux and macOS
+    </li>
   </ul>
 </div>
