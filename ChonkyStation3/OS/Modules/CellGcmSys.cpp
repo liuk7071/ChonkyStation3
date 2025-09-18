@@ -14,9 +14,17 @@ u64 CellGcmSys::cellGcmGetTiledPitchSize() {
     return 0;
 }
 
+u64 CellGcmSys::cellGcmSetUserHandler() {
+    const u32 handler_ptr = ARG0;
+    log("cellGcmSetUserHandler(handler_ptr: 0x%08x)\n");
+    
+    user_handler = handler_ptr;
+    return CELL_OK;
+}
+
 u64 CellGcmSys::cellGcmSetQueueHandler() {
     const u32 handler_ptr = ARG0;
-    log("cellGcmGetDisplayInfo(handler_ptr: 0x%08x)\n");
+    log("cellGcmSetQueueHandler(handler_ptr: 0x%08x)\n");
     
     queue_handler = handler_ptr;    
     return CELL_OK;
@@ -115,7 +123,7 @@ u64 CellGcmSys::cellGcmInitBody() {
     
     // Create vblank thread
     static const u8 code[] = {
-        0x39, 0x60, 0x00, 0x8d, 0x38, 0x60, 0x03, 0xe8,
+        0x39, 0x60, 0x00, 0x8d, 0x38, 0x60, 0x03, 0xe8, /* 0x38, 0x60, 0x01, 0x00, */
         0x44, 0x00, 0x00, 0x02, 0x39, 0x60, 0x10, 0x00,
         0x44, 0x00, 0x00, 0x02, 0x4b, 0xff, 0xff, 0xec,
 

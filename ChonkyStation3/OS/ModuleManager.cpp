@@ -104,7 +104,7 @@ void ModuleManager::init() {
         { 0xdc578057, { "sysMMapperMapMemory",                              std::bind(&SysMMapper::sysMMapperMapMemory, &sysMMapper) }},
 
         { 0x055bd74d, { "cellGcmGetTiledPitchSize",                         std::bind(&CellGcmSys::cellGcmGetTiledPitchSize, &cellGcmSys) }},
-        { 0x06edea9e, { "cellGcmSetUserHandler",                            std::bind(&ModuleManager::stub, this) } },
+        { 0x06edea9e, { "cellGcmSetUserHandler",                            std::bind(&CellGcmSys::cellGcmSetUserHandler, &cellGcmSys) } },
         { 0x0a862772, { "cellGcmSetQueueHandler",                           std::bind(&CellGcmSys::cellGcmSetQueueHandler, &cellGcmSys) } },
         { 0x0b4b62d5, { "cellGcmSetPrepareFlip",                            std::bind(&CellGcmSys::cellGcmSetPrepareFlip, &cellGcmSys) } },
         { 0x0e6b0dae, { "cellGcmGetDisplayInfo",                            std::bind(&CellGcmSys::cellGcmGetDisplayInfo, &cellGcmSys) }},
@@ -336,6 +336,7 @@ void ModuleManager::init() {
         { 0xf65544ee, { "cellPadSetActDirect",                              std::bind(&ModuleManager::stub, this) } },
         { 0xf83f8182, { "cellPadSetPressMode",                              std::bind(&ModuleManager::stub, this) } },
 
+        { 0x2073b7f6, { "cellKbClearBuf",                                   std::bind(&ModuleManager::stub, this) } },
         { 0x2f1774d5, { "cellKbGetInfo",                                    std::bind(&CellKb::cellKbGetInfo, &cellKb) }},
         { 0xff0a21b7, { "cellKbRead",                                       std::bind(&CellKb::cellKbRead, &cellKb) }},
         
@@ -478,7 +479,12 @@ void ModuleManager::init() {
         { 0x5f7c7a6f, { "cellSailPlayerSetParameter",                       std::bind(&ModuleManager::stub, this) } },
         { 0xbdf21b0f, { "cellSailPlayerBoot",                               std::bind(&ModuleManager::stub, this) } },
         
+        { 0x0ecd2261, { "cellGemUpdateStart",                               std::bind(&ModuleManager::stub, this) } },
         { 0x13ea7c64, { "cellGemInit",                                      std::bind(&ModuleManager::stub, this) } },
+        { 0x2e0a170d, { "cellGemGetMemorySize",                             std::bind(&ModuleManager::stub, this) } },
+        { 0x41ae9c31, { "cellGemUpdateFinish",                              std::bind(&ModuleManager::stub, this) } },
+        { 0x6441d38d, { "cellGemGetState",                                  std::bind(&ModuleManager::stub, this) } },
+        { 0x9e1dff96, { "cellGemGetInfo",                                   std::bind(&ModuleManager::stub, this) } },
         
         { 0x02f5ced0, { "cellCameraStop",                                   std::bind(&ModuleManager::stub, this) } },
         { 0x379c5dd6, { "cellCameraClose",                                  std::bind(&ModuleManager::stub, this) } },

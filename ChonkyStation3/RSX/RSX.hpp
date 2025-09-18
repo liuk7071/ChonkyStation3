@@ -118,7 +118,7 @@ public:
 
     void putWritten(u64 unused);
     void runCommandList();
-    void doCmd(u32 cmd_num, std::deque<u32>& args);
+    bool doCmd(u32 cmd_num, std::deque<u32>& args);
     u32 fetch32();
     u32 offsetAndLocationToAddress(u32 offset, u8 location);
 

@@ -255,10 +255,10 @@ u32 SPUThread::readChannel(u32 ch) {
     case SPU_RdDec: {
         // TODO: This is a bad stub
         const auto val = decrementer;
-        decrementer -= 100;
+        decrementer -= 64;
         return val;
     }
-    case SPU_RdEventMask:   return -1;  // TODO
+    case SPU_RdEventMask:   return event_mask.raw;
     case SPU_RdMachStat:    return 0;   // TODO
     case SPU_RdInMbox: {
         if (!in_mbox.size()) {
@@ -435,6 +435,10 @@ void SPUThread::doCmd(u32 cmd) {
                 log("mem[0x%08x] <- ls[0x%08x] size: %d\n", src, dst, (u32)elem->ts);
                 std::memcpy(ps3->mem.getPtr(dst), &ls[src], elem->ts);
             }
+            if (elem->sb & 0x8000) {
+                event_stat.sn = true;
+                //Helpers::panic("TODO: stall and notify bit\n");
+            }
             ls_addr += elem->ts;
             // TODO: Do I need to align ls_addr to 16 bytes again here?
         }
@@ -472,7 +476,8 @@ void SPUThread::doCmd(u32 cmd) {
                 std::memcpy(&ls[dst], ps3->mem.getPtr(src), elem->ts);
             }
             if (elem->sb & 0x8000) {
-                Helpers::panic("TODO: stall and notify bit\n");
+                event_stat.sn = true;
+                //Helpers::panic("TODO: stall and notify bit\n");
             }
             ls_addr += elem->ts;
             // TODO: Do I need to align ls_addr to 16 bytes again here?

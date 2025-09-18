@@ -71,11 +71,11 @@ void ThreadDebuggerWidget::update() {
     ui.spuTable->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
 
     ui.spuTable->setRowCount(ps3->spu_thread_manager.threads.size());
-    ui.spuTable->setColumnCount(4);
+    ui.spuTable->setColumnCount(6);
     for (int i = 0; i < ui.spuTable->rowCount(); i++)
         ui.spuTable->setRowHeight(i, 20);
     ui.spuTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    ui.spuTable->setHorizontalHeaderLabels(QStringList({ "Name", "Status", "ID", "pc"}));
+    ui.spuTable->setHorizontalHeaderLabels(QStringList({ "Name", "Status", "ID", "pc", "Decrementer", "Enabled Events" }));
     
     for (int i = 0; i < spu_threads.size(); i++) {
         auto& thread = spu_threads[i];
@@ -83,6 +83,30 @@ void ThreadDebuggerWidget::update() {
         setListItem(ui.spuTable, i, 1, SPUThread::threadStatusToString(thread.status));
         setListItem(ui.spuTable, i, 2, std::format("{:d}", thread.id));
         setListItem(ui.spuTable, i, 3, std::format("{:08x}", thread.state.pc));
+        setListItem(ui.spuTable, i, 4, std::format("{:08x}", thread.decrementer));
+        
+        std::string events;
+        events.reserve(64);
+        if (thread.event_mask.tg)       events += "tg, ";
+        if (thread.event_mask.sn)       events += "sn, ";
+        if (thread.event_mask.reserved) events += "reserved, ";
+        if (thread.event_mask.qv)       events += "qv, ";
+        if (thread.event_mask.mb)       events += "mb, ";
+        if (thread.event_mask.tm)       events += "tm, ";
+        if (thread.event_mask.me)       events += "me, ";
+        if (thread.event_mask.le)       events += "le, ";
+        if (thread.event_mask.s2)       events += "s2, ";
+        if (thread.event_mask.s1)       events += "s1, ";
+        if (thread.event_mask.lr)       events += "lr, ";
+        if (thread.event_mask.a)        events += "a, ";
+        if (thread.event_mask.ms)       events += "ms, ";
+        
+        // Remove trailing comma if at least 1 event was enabled
+        if (thread.event_mask.raw) {
+            events[events.size() - 2] = ' ';
+        } else events = "None";
+        
+        setListItem(ui.spuTable, i, 5, events);
     }
 }
 

@@ -1996,12 +1996,18 @@ void PPUInterpreter::mfspr(const Instruction& instr) {
     case 0b01001:   state.gprs[instr.rt] = state.ctr;       break;
     case 0x001:     state.gprs[instr.rt] = state.xer.get(); break;
     case 0x100:     state.gprs[instr.rt] = state.vrsave;    break;
-    default: Helpers::panic("mfspr: unimplemented register 0x%04x\n", reversed_spr);
+    default:        Helpers::panic("mfspr: unimplemented register 0x%04x\n", reversed_spr);
     }
 }
 
 void PPUInterpreter::mftb(const Instruction& instr) {
-    state.gprs[instr.rt] = std::chrono::system_clock::now().time_since_epoch().count() * 8;
+    auto reversed_spr = ((instr.spr & 0x1f) << 5) | (instr.spr >> 5);
+    const u64 tb = std::chrono::system_clock::now().time_since_epoch().count() * 80;
+    switch (reversed_spr) {
+    case 0x10c: state.gprs[instr.rt] = tb;          break;
+    case 0x10d: state.gprs[instr.rt] = tb >> 32;    break;
+    default:    Helpers::panic("mftb: invalid spr\n");
+    }
 }
 
 void PPUInterpreter::sthx(const Instruction& instr) {
@@ -2056,7 +2062,7 @@ void PPUInterpreter::mtspr(const Instruction& instr) {
     case 0b01000:   state.lr     = state.gprs[instr.rs];    break;
     case 0b01001:   state.ctr    = state.gprs[instr.rs];    break;
     case 0x100:     state.vrsave = state.gprs[instr.rs];    break;
-    default: Helpers::panic("mtspr: unimplemented register 0x%04x\n", reversed_spr);
+    default:        Helpers::panic("mtspr: unimplemented register 0x%04x\n", reversed_spr);
     }
 }
 

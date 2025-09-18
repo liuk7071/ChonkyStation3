@@ -752,6 +752,7 @@ void RSX::runCommandList() {
             break;
         }
         
+        const u32 old_get = gcm.ctrl->get;
         u32 cmd = fetch32();
         auto cmd_num = cmd & 0x3ffff;
         auto argc = (cmd >> 18) & 0x7ff;
@@ -814,13 +815,15 @@ void RSX::runCommandList() {
         do {
             if (command_names.contains(cmd_num) && cmd_num)
                 log("0x%08x: %s\n", (u32)gcm.ctrl->get - 4, command_names[cmd_num].c_str());
-            doCmd(cmd_num, args);
+            if (!doCmd(cmd_num, args)) {
+                gcm.ctrl->get = old_get;
+                break;
+            }
             if (incrementing) cmd_num += 4;
         } while (!args.empty());
     }
 }
-
-void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
+bool RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
     switch (cmd_num) {
 
     case NV406E_SET_REFERENCE: {
@@ -854,10 +857,9 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
     case NV406E_SEMAPHORE_ACQUIRE: {
         const auto sema = ps3->mem.read<u32>(gcm.label_addr + semaphore_offset);
         if (sema != args[0]) {
-            //gcm.ctrl->get = gcm.ctrl->get - 8;
-            printf("Could not acquire semaphore\n");
+            //printf("Could not acquire semaphore\n");
+            //return false;
             //Helpers::panic("Could not acquire semaphore\n");
-            //return;
         }
         args.pop_front();
         break;
@@ -1815,8 +1817,18 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
     }
             
     case GCM_USER_COMMAND: {
-        log("User command\n");
-        Helpers::panic("RSX: user command\n");
+        const u32 arg = args[0];
+        log("User command (arg: 0x%08x)\n", arg);
+        
+        if (gcm.user_handler) {
+            u32 old_r3 = ps3->ppu->state.gprs[3];
+            ps3->ppu->state.gprs[3] = arg;
+            ps3->ppu->runFunc(ps3->mem.read<u32>(gcm.user_handler), ps3->mem.read<u32>(gcm.user_handler + 4));
+            ps3->ppu->state.gprs[3] = old_r3;
+        }
+        
+        log("User command done\n");
+        args.pop_front();
         break;
     }
 
@@ -1862,17 +1874,9 @@ void RSX::doCmd(u32 cmd_num, std::deque<u32>& args) {
         args.clear();
         break;
     }
-
-        /*
-    default:
-        if (cmd) {  // Don't print NOPs
-            if (command_names.contains(cmd & 0x3ffff))
-                log("Unimplemented RSX command %s\n", command_names[cmd_num].c_str());
-            else
-                log("Unimplemented RSX command 0x%08x (0x%08x)\n", cmd_num, cmd);
-        }
-        */
     }
+    
+    return true;
 }
 
 void RSX::checkGLError() {

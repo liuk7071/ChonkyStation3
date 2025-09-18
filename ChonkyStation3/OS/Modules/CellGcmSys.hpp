@@ -86,6 +86,7 @@ public:
     u32 flip_callback = 0;
     u32 vblank_handler = 0;
     u32 vblank2_handler = 0;
+    u32 user_handler = 0;
     u32 queue_handler = 0;
     u32 command_size = 0x20000;
     u32 segment_size = 0x2000;
@@ -98,6 +99,7 @@ public:
     void printOffsetTable();
 
     u64 cellGcmGetTiledPitchSize();
+    u64 cellGcmSetUserHandler();
     u64 cellGcmSetQueueHandler();
     u64 cellGcmSetPrepareFlip();
     u64 cellGcmGetDisplayInfo();
