@@ -152,6 +152,11 @@ void SPUThread::wait() {
 
 void SPUThread::stop(u32 code) {
     switch (code) {
+    case 0x1: {
+        // TODO
+        break;
+    }
+            
     case 0x101: {
         Helpers::debugAssert(out_mbox.size(), "sys_spu_thread_group_exit: out mbox is empty\n");
         u32 exit_status = out_mbox.front();
@@ -162,6 +167,7 @@ void SPUThread::stop(u32 code) {
         break;
         
     }
+            
     default:
         Helpers::panic("Unhandled SPU stop code 0x%x\n", code);
     }
@@ -173,6 +179,13 @@ void SPUThread::wakeUp() {
     log("Woke up thread %d \"%s\"\n", id, name.c_str());
     status = ThreadStatus::Running;
     reschedule();
+}
+
+void SPUThread::maybeEnableOrDisableInterrupts(const SPUInstruction& instr) {
+    Helpers::debugAssert(!(instr.e && instr.d), "SPU: both e and d bits are set");
+    
+    if (instr.e)        interrupts_enabled = true;
+    else if (instr.d)   interrupts_enabled = false;
 }
 
 void SPUThread::writeInMbox(u32 val) {
@@ -197,6 +210,14 @@ void SPUThread::wakeUpIfEvent() {
 
 bool SPUThread::hasPendingEvents() {
     return event_stat.raw & event_mask.raw;
+}
+
+void SPUThread::interruptIfEvent() {
+    // TODO: I'm unsure how to handle events triggering interrupts in threads that aren't the current one.
+    // I won't have to worry about this when I emulate each thread as a host thread.
+    if (hasPendingEvents()) {
+        ps3->spu->interrupt();
+    }
 }
 
 std::string SPUThread::channelToString(u32 ch) {
@@ -273,7 +294,15 @@ u32 SPUThread::readChannel(u32 ch) {
     }
     case MFC_RdTagMask:     return tag_mask;
     case MFC_RdTagStat:     return tag_mask;  // TODO
-    case MFC_RdAtomicStat:  return atomic_stat;             
+    case MFC_RdListStallStat: {
+        if (!stall_stat)
+            Helpers::panic("TODO: RdListStallStat with channel count 0\n");
+        
+        const u32 val = stall_stat;
+        stall_stat = 0; // Clear flags
+        return val;
+    }
+    case MFC_RdAtomicStat:  return atomic_stat;
 
     default:
         Helpers::panic("Unimplemented MFC channel read 0x%02x\n", ch);
@@ -285,12 +314,13 @@ u32 SPUThread::readChannelCount(u32 ch) {
 
     switch (ch) {
 
-    case SPU_RdEventStat:   return hasPendingEvents();
-    case SPU_RdInMbox:      return in_mbox.size();
-    case SPU_WrOutIntrMbox: return 1;
+    case SPU_RdEventStat:       return hasPendingEvents();
+    case SPU_RdInMbox:          return in_mbox.size();
+    case SPU_WrOutIntrMbox:     return 1;
 
-    case MFC_WrTagUpdate:   return 1;
-    case MFC_RdTagStat:     return 1;
+    case MFC_WrTagUpdate:       return 1;
+    case MFC_RdTagStat:         return 1;
+    case MFC_RdListStallStat:   return stall_stat != 0;
 
     default:
         Helpers::panic("Unimplemented MFC channel count read %d\n", ch);
@@ -393,6 +423,10 @@ void SPUThread::writeChannel(u32 ch, u32 val) {
     case MFC_Cmd:           doCmd(val);         break;
     case MFC_WrTagMask:     tag_mask    = val;  break;
     case MFC_WrTagUpdate:   /* TODO */          break;
+    case MFC_WrListStallAck: {
+        // TODO
+        break;
+    }
 
     default:
         Helpers::panic("Unimplemented MFC channel write 0x%02x\n", ch);
@@ -422,9 +456,6 @@ void SPUThread::doCmd(u32 cmd) {
         
         const auto n_elements = size / sizeof(MFCListElement);
         u32 ls_addr = lsa & 0x3fff0;
-        
-        // TODO: Stall bit
-        
         log("Beginning list transfer (size: %d, n_elements: %d)\n", size, n_elements);
         log("Starting LS addr: 0x%08x\n", ls_addr);
         for (int i = 0; i < n_elements; i++) {
@@ -437,7 +468,8 @@ void SPUThread::doCmd(u32 cmd) {
             }
             if (elem->sb & 0x8000) {
                 event_stat.sn = true;
-                //Helpers::panic("TODO: stall and notify bit\n");
+                stall_stat |= 1 << tag_id;
+                interruptIfEvent();
             }
             ls_addr += elem->ts;
             // TODO: Do I need to align ls_addr to 16 bytes again here?
@@ -462,9 +494,6 @@ void SPUThread::doCmd(u32 cmd) {
         
         const auto n_elements = size / sizeof(MFCListElement);
         u32 ls_addr = lsa & 0x3fff0;
-        
-        // TODO: Stall bit
-        
         log("Beginning list transfer (size: %d, n_elements: %d)\n", size, n_elements);
         log("Starting LS addr: 0x%08x\n", ls_addr);
         for (int i = 0; i < n_elements; i++) {
@@ -477,7 +506,8 @@ void SPUThread::doCmd(u32 cmd) {
             }
             if (elem->sb & 0x8000) {
                 event_stat.sn = true;
-                //Helpers::panic("TODO: stall and notify bit\n");
+                stall_stat |= 1 << tag_id;
+                interruptIfEvent();
             }
             ls_addr += elem->ts;
             // TODO: Do I need to align ls_addr to 16 bytes again here?

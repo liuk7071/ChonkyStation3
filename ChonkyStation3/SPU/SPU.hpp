@@ -27,4 +27,6 @@ public:
     template<typename T> void write(u64 addr, T data);
     SPUTypes::GPR read128(u64 addr);    // TODO: Rename GPR to a generic u128 type
     void write128(u64 addr, SPUTypes::GPR data);
+    
+    void interrupt();
 };

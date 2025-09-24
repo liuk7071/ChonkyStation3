@@ -10,6 +10,7 @@ using GPR = v128;
 struct State {
     GPR gprs[128] = { 0 };
     u32 pc = 0;
+    u32 srr0 = 0;
 };
 
 union SPUInstruction {

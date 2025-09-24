@@ -32,6 +32,7 @@ public:
     u32 id;
     std::string name;
     bool is_raw = false;
+    bool interrupts_enabled = false;
     int raw_idx = -1;
 
     enum class ThreadStatus {
@@ -57,6 +58,7 @@ public:
     void wait();
     void stop(u32 code);
     void wakeUp();
+    void maybeEnableOrDisableInterrupts(const SPUInstruction& instr);
 
     static std::string threadStatusToString(ThreadStatus status) {
         switch (status) {
@@ -149,6 +151,7 @@ public:
     u32 tag_mask = 0;
     u32 atomic_stat = 0;
     u32 decrementer = 0;
+    u32 stall_stat = 0;
 
     std::queue<u32> in_mbox = {};
     std::queue<u32> out_mbox = {};
@@ -209,6 +212,7 @@ public:
     void sendLocklineLostEvent();
     void wakeUpIfEvent();
     bool hasPendingEvents();
+    void interruptIfEvent();
 
     std::string channelToString(u32 ch);
     u32  readChannel(u32 ch);

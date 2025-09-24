@@ -50,3 +50,8 @@ void SPU::write128(u64 addr, SPUTypes::GPR data) {
     write<u64>(addr, data.dw[1]);
     write<u64>(addr + 8, data.dw[0]);
 }
+
+void SPU::interrupt() {
+    state.srr0 = state.pc + 4;
+    state.pc = 0 - 4;   // pc is post-incremented - this function relies on being called in the middle of an instruction
+}

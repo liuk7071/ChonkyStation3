@@ -253,8 +253,6 @@ int SPUInterpreter::step() {
         
 #endif
 
-        //printf("0x%x\n", state.pc);
-        //printState();
 #endif
         
         state.pc += 4;
@@ -276,7 +274,7 @@ void SPUInterpreter::unimpl(const SPUInstruction& instr) {
     /*std::ofstream out("spu-dump-crash.bin", std::ios::binary);
     for (int i = 0; i < 256_KB; i += 4) {
         const u32 val = Helpers::bswap(*(u32*)&ls[i]);
-        out.write((const char*)&val, sizeof(4));
+        out.write((const char*)&val, sizeof(u32));
     }*/
     Helpers::panic("Unimplemented instruction 0x%08x\n", instr.raw);
 }
@@ -452,6 +450,7 @@ void SPUInterpreter::biz(const SPUInstruction& instr) {
     if (state.gprs[instr.rt0].w[3] == 0) {
         const u32 addr = state.gprs[instr.ra].w[3] & 0x3fffc;
         state.pc = addr - 4;
+        ps3->spu_thread_manager.getCurrentThread()->maybeEnableOrDisableInterrupts(instr);
     }
 }
 
@@ -459,6 +458,7 @@ void SPUInterpreter::binz(const SPUInstruction& instr) {
     if (state.gprs[instr.rt0].w[3] != 0) {
         const u32 addr = state.gprs[instr.ra].w[3] & 0x3fffc;
         state.pc = addr - 4;
+        ps3->spu_thread_manager.getCurrentThread()->maybeEnableOrDisableInterrupts(instr);
     }
 }
 
@@ -466,6 +466,7 @@ void SPUInterpreter::bihz(const SPUInstruction& instr) {
     if (state.gprs[instr.rt0].h[6] == 0) {
         const u32 addr = state.gprs[instr.ra].w[3] & 0x3fffc;
         state.pc = addr - 4;
+        ps3->spu_thread_manager.getCurrentThread()->maybeEnableOrDisableInterrupts(instr);
     }
 }
 
@@ -473,6 +474,7 @@ void SPUInterpreter::bihnz(const SPUInstruction& instr) {
     if (state.gprs[instr.rt0].h[6] != 0) {
         const u32 addr = state.gprs[instr.ra].w[3] & 0x3fffc;
         state.pc = addr - 4;
+        ps3->spu_thread_manager.getCurrentThread()->maybeEnableOrDisableInterrupts(instr);
     }
 }
 
@@ -484,6 +486,7 @@ void SPUInterpreter::stqx(const SPUInstruction& instr) {
 void SPUInterpreter::bi(const SPUInstruction& instr) {
     const u32 addr = state.gprs[instr.ra].w[3] & 0x3fffc;
     state.pc = addr - 4;
+    ps3->spu_thread_manager.getCurrentThread()->maybeEnableOrDisableInterrupts(instr);
 }
 
 void SPUInterpreter::bisl(const SPUInstruction& instr) {
@@ -491,6 +494,12 @@ void SPUInterpreter::bisl(const SPUInstruction& instr) {
     clr(state.gprs[instr.rt0]);
     state.gprs[instr.rt0].w[3] = state.pc + 4;
     state.pc = addr - 4;
+    ps3->spu_thread_manager.getCurrentThread()->maybeEnableOrDisableInterrupts(instr);
+}
+
+void SPUInterpreter::iret(const SPUInstruction& instr) {
+    state.pc = state.srr0 - 4;
+    ps3->spu_thread_manager.getCurrentThread()->maybeEnableOrDisableInterrupts(instr);
 }
 
 void SPUInterpreter::hbr(const SPUInstruction& instr) {}
@@ -774,6 +783,11 @@ void SPUInterpreter::cgt(const SPUInstruction& instr) {
 void SPUInterpreter::xor_(const SPUInstruction& instr) {
     state.gprs[instr.rt0].dw[0] = state.gprs[instr.ra].dw[0] ^ state.gprs[instr.rb].dw[0];
     state.gprs[instr.rt0].dw[1] = state.gprs[instr.ra].dw[1] ^ state.gprs[instr.rb].dw[1];
+}
+
+void SPUInterpreter::cgth(const SPUInstruction& instr) {
+    for (int i = 0; i < 8; i++)
+        state.gprs[instr.rt0].h[i] = ((s16)state.gprs[instr.ra].h[i] > (s16)state.gprs[instr.rb].h[i]) ? 0xffff : 0;
 }
 
 void SPUInterpreter::eqv(const SPUInstruction& instr) {
@@ -1090,6 +1104,13 @@ void SPUInterpreter::bra(const SPUInstruction& instr) {
 void SPUInterpreter::lqa(const SPUInstruction& instr) {
     const u32 addr = (instr.i16 << 2) & 0x3fff0;
     state.gprs[instr.rt0] = read128(addr);
+}
+
+void SPUInterpreter::brasl(const SPUInstruction& instr) {
+    const u32 addr = ext<s32, 18>(instr.i16 << 2) & 0x3fffc;
+    clr(state.gprs[instr.rt0]);
+    state.gprs[instr.rt0].w[3] = state.pc + 4;
+    state.pc = addr - 4;
 }
 
 void SPUInterpreter::br(const SPUInstruction& instr) {
@@ -1431,7 +1452,7 @@ UNIMPL_INSTR(stopd);
 //UNIMPL_INSTR(stqx);
 //UNIMPL_INSTR(bi);
 //UNIMPL_INSTR(bisl);
-UNIMPL_INSTR(iret);
+//UNIMPL_INSTR(iret);
 UNIMPL_INSTR(bisled);
 //UNIMPL_INSTR(hbr);
 //UNIMPL_INSTR(gb);
@@ -1470,7 +1491,7 @@ UNIMPL_INSTR(bisled);
 //UNIMPL_INSTR(nop);
 //UNIMPL_INSTR(cgt);
 //UNIMPL_INSTR(xor_);
-UNIMPL_INSTR(cgth);
+//UNIMPL_INSTR(cgth);
 //UNIMPL_INSTR(eqv);
 UNIMPL_INSTR(cgtb);
 //UNIMPL_INSTR(sumb);
@@ -1538,7 +1559,7 @@ UNIMPL_INSTR(dfcmeq);
 //UNIMPL_INSTR(stqr);
 //UNIMPL_INSTR(bra);
 //UNIMPL_INSTR(lqa);
-UNIMPL_INSTR(brasl);
+//UNIMPL_INSTR(brasl);
 //UNIMPL_INSTR(br);
 //UNIMPL_INSTR(fsmbi);
 //UNIMPL_INSTR(brsl);
